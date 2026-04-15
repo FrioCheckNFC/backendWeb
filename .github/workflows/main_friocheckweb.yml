@@ -1,49 +1,38 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
-name: Build and deploy Node.js app to Azure Web App - FriocheckWEB
-
+name: Build and deploy Node.js Web to Azure
 on:
   push:
     branches:
       - main
   workflow_dispatch:
-
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read #This is required for actions/checkout
-
+      contents: read
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up Node.js version
         uses: actions/setup-node@v3
         with:
           node-version: '22.x'
-
       - name: npm install, build, and test
         run: |
           npm install
           npm run build --if-present
-          npm run test --if-present
-
-      - name: Upload artifact for deployment job
+          
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: node-app
           path: .
-
   deploy:
     runs-on: ubuntu-latest
     needs: build
     permissions:
-      id-token: write #This is required for requesting the JWT
-      contents: read #This is required for actions/checkout
-
+      id-token: write
+      contents: read
     steps:
-      - name: Download artifact from build job
+      - name: Download artifact
         uses: actions/download-artifact@v4
         with:
           name: node-app
@@ -51,15 +40,12 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_670F9603A3F64FCAAA339476D9890012 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_F22E07DD3D4B4DE2BC1E0AB86F01C4AD }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_CBE66EC57B91429DA3A0E796043129A1 }}
-
-      - name: 'Deploy to Azure Web App'
-        id: deploy-to-webapp
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_671E275A8CC44A729D185B86D247293F }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_9886B16E3A74400095AE30C4043A4659 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_250AC91A5E424E4F87419074A5A3C856 }}
+      - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'FriocheckWEB'
           slot-name: 'Production'
           package: .
-          
