@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   IsOptional,
   IsString,
+  IsUUID,
   MinLength,
   MaxLength,
   IsNumber,
@@ -13,8 +14,26 @@ import {
 
 export class UpdateLocationDto {
   @ApiProperty({
-    example: 'Sucursal Bogotá - Actualizada',
-    description: 'Nombre de la ubicación',
+    example: '550e8400-e29b-41d4-a716-446655440111',
+    description: 'ID del sector asociado',
+    required: false,
+  })
+  @IsOptional()
+  @IsUUID('4')
+  sectorId?: string;
+
+  @ApiProperty({
+    example: '550e8400-e29b-41d4-a716-446655440222',
+    description: 'ID del retailer asociado',
+    required: false,
+  })
+  @IsOptional()
+  @IsUUID('4')
+  retailerId?: string;
+
+  @ApiProperty({
+    example: 'Jumbo Ñuñoa - Actualizado',
+    description: 'Nombre del local',
     required: false,
   })
   @IsOptional()
@@ -25,7 +44,7 @@ export class UpdateLocationDto {
 
   @ApiProperty({
     example: 'Cra 7 #123-50, Bogotá, Colombia',
-    description: 'Dirección física',
+    description: 'Dirección física del local',
     required: false,
   })
   @IsOptional()
@@ -57,51 +76,51 @@ export class UpdateLocationDto {
   longitude: number;
 
   @ApiProperty({
-    example: 'Juan Pérez García',
-    description: 'Nombre del contacto',
+    example: 'Jumbo Chile S.A.',
+    description: 'Nombre del retailer',
     required: false,
   })
   @IsOptional()
   @IsString()
   @MinLength(3)
   @MaxLength(255)
-  contactName: string;
+  retailerName?: string;
 
   @ApiProperty({
-    example: '301-2345678',
-    description: 'Teléfono de contacto',
+    example: '96.765.432-1',
+    description: 'RUT del retailer',
     required: false,
   })
   @IsOptional()
   @IsString()
   @MaxLength(20)
-  phone: string;
+  retailerRut?: string;
 
   @ApiProperty({
-    example: 'contacto@ubicacion.com',
-    description: 'Email de contacto',
-    required: false,
-  })
-  @IsOptional()
-  @IsEmail()
-  email: string;
-
-  @ApiProperty({
-    example: 'Centro de distribución principal - Hub logístico',
-    description: 'Descripción adicional',
+    example: '+56912345678',
+    description: 'Teléfono del retailer',
     required: false,
   })
   @IsOptional()
   @IsString()
-  @MaxLength(1000)
-  description: string;
+  @MaxLength(20)
+  retailerPhone?: string;
+
+  @ApiProperty({
+    example: 'retailer-jumbo@friocheck.com',
+    description: 'Email del retailer',
+    required: false,
+  })
+  @IsOptional()
+  @IsEmail()
+  retailerEmail?: string;
 
   @ApiProperty({
     example: true,
-    description: 'Indicar si la ubicación está activa',
+    description: 'Indicar si el local está activo',
     required: false,
   })
   @IsOptional()
   @IsBoolean()
-  isActive: boolean;
+  isActive?: boolean;
 }

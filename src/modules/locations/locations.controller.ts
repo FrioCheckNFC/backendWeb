@@ -9,28 +9,29 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { LocationsService } from './locations.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { User } from '../users/entities/user.entity';
 import { CreateLocationDto, UpdateLocationDto, LocationResponseDto } from './dto';
 
-@ApiTags('Locations')
-@Controller('locations')
+@ApiTags('Stores')
+@ApiBearerAuth()
+@Controller('stores')
 @UseGuards(JwtAuthGuard)
 export class LocationsController {
   constructor(private locationsService: LocationsService) {}
 
   /**
-   * POST /locations
-   * Crear una nueva ubicación
+   * POST /stores
+   * Crear una nueva tienda/local
    */
   @Post()
-  @ApiOperation({ summary: 'Crear una nueva ubicación' })
+  @ApiOperation({ summary: 'Crear una nueva store' })
   @ApiResponse({
     status: 201,
-    description: 'Ubicación creada exitosamente',
+    description: 'Store creada exitosamente',
     type: LocationResponseDto,
   })
   async create(
@@ -42,11 +43,11 @@ export class LocationsController {
   }
 
   /**
-   * GET /locations
-   * Obtener todas las ubicaciones de un tenant
+   * GET /stores
+   * Obtener todas las stores de un tenant
    */
   @Get()
-  @ApiOperation({ summary: 'Obtener todas las ubicaciones' })
+  @ApiOperation({ summary: 'Obtener todas las stores' })
   @ApiQuery({
     name: 'isActive',
     required: false,
@@ -67,10 +68,10 @@ export class LocationsController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Lista de ubicaciones',
+    description: 'Lista de stores',
     schema: {
       properties: {
-        locations: {
+        stores: {
           type: 'array',
           items: { $ref: '#/components/schemas/LocationResponseDto' },
         },
@@ -92,14 +93,14 @@ export class LocationsController {
   }
 
   /**
-   * GET /locations/search/:name
-   * Buscar ubicaciones por nombre
+   * GET /stores/search/:name
+   * Buscar stores por nombre
    */
   @Get('search/:name')
-  @ApiOperation({ summary: 'Buscar ubicaciones por nombre' })
+  @ApiOperation({ summary: 'Buscar stores por nombre' })
   @ApiResponse({
     status: 200,
-    description: 'Ubicaciones encontradas',
+    description: 'Stores encontradas',
     type: [LocationResponseDto],
   })
   async findByName(
@@ -110,14 +111,14 @@ export class LocationsController {
   }
 
   /**
-   * GET /locations/:id
-   * Obtener una ubicación específica
+   * GET /stores/:id
+   * Obtener una store específica
    */
   @Get(':id')
-  @ApiOperation({ summary: 'Obtener una ubicación por ID' })
+  @ApiOperation({ summary: 'Obtener una store por ID' })
   @ApiResponse({
     status: 200,
-    description: 'Ubicación encontrada',
+    description: 'Store encontrada',
     type: LocationResponseDto,
   })
   async findOne(
@@ -128,14 +129,14 @@ export class LocationsController {
   }
 
   /**
-   * PATCH /locations/:id
-   * Actualizar una ubicación
+   * PATCH /stores/:id
+   * Actualizar una store
    */
   @Patch(':id')
-  @ApiOperation({ summary: 'Actualizar una ubicación' })
+  @ApiOperation({ summary: 'Actualizar una store' })
   @ApiResponse({
     status: 200,
-    description: 'Ubicación actualizada',
+    description: 'Store actualizada',
     type: LocationResponseDto,
   })
   async update(
@@ -147,14 +148,14 @@ export class LocationsController {
   }
 
   /**
-   * DELETE /locations/:id
-   * Eliminar una ubicación (soft delete)
+   * DELETE /stores/:id
+   * Eliminar una store (soft delete)
    */
   @Delete(':id')
-  @ApiOperation({ summary: 'Eliminar una ubicación' })
+  @ApiOperation({ summary: 'Eliminar una store' })
   @ApiResponse({
     status: 200,
-    description: 'Ubicación eliminada',
+    description: 'Store eliminada',
   })
   async delete(
     @Param('id') id: string,

@@ -22,8 +22,26 @@ export class CreateLocationDto {
   tenantId?: string;
 
   @ApiProperty({
+    example: '550e8400-e29b-41d4-a716-446655440111',
+    description: 'ID del sector asociado (opcional)',
+    required: false,
+  })
+  @IsOptional()
+  @IsUUID('4')
+  sectorId?: string;
+
+  @ApiProperty({
+    example: '550e8400-e29b-41d4-a716-446655440222',
+    description: 'ID del retailer asociado (opcional)',
+    required: false,
+  })
+  @IsOptional()
+  @IsUUID('4')
+  retailerId?: string;
+
+  @ApiProperty({
     example: 'Sucursal Bogotá',
-    description: 'Nombre de la ubicación',
+    description: 'Nombre del local',
   })
   @IsNotEmpty({ message: 'El nombre es obligatorio' })
   @IsString()
@@ -33,7 +51,7 @@ export class CreateLocationDto {
 
   @ApiProperty({
     example: 'Cra 7 #123-45, Bogotá, Colombia',
-    description: 'Dirección física completa',
+    description: 'Dirección física completa del local',
   })
   @IsNotEmpty({ message: 'La dirección es obligatoria' })
   @IsString()
@@ -64,42 +82,42 @@ export class CreateLocationDto {
   longitude: number;
 
   @ApiProperty({
-    example: 'Juan Pérez',
-    description: 'Nombre del contacto',
+    example: 'Jumbo Chile S.A.',
+    description: 'Nombre del retailer',
     required: false,
   })
   @IsOptional()
   @IsString()
-  @MinLength(3, { message: 'El nombre de contacto debe tener al menos 3 caracteres' })
-  @MaxLength(255, { message: 'El nombre de contacto no puede exceder 255 caracteres' })
-  contactName: string;
+  @MinLength(3, { message: 'El nombre del retailer debe tener al menos 3 caracteres' })
+  @MaxLength(255, { message: 'El nombre del retailer no puede exceder 255 caracteres' })
+  retailerName?: string;
 
   @ApiProperty({
-    example: '301-2345678',
-    description: 'Teléfono de contacto',
+    example: '96.765.432-1',
+    description: 'RUT del retailer',
     required: false,
   })
   @IsOptional()
   @IsString()
   @MaxLength(20)
-  phone: string;
+  retailerRut?: string;
 
   @ApiProperty({
-    example: 'contacto@ubicacion.com',
-    description: 'Email de contacto',
-    required: false,
-  })
-  @IsOptional()
-  @IsEmail()
-  email: string;
-
-  @ApiProperty({
-    example: 'Centro de distribución principal',
-    description: 'Descripción adicional',
+    example: '+56912345678',
+    description: 'Teléfono del retailer',
     required: false,
   })
   @IsOptional()
   @IsString()
-  @MaxLength(1000)
-  description: string;
+  @MaxLength(20)
+  retailerPhone?: string;
+
+  @ApiProperty({
+    example: 'retailer-jumbo@friocheck.com',
+    description: 'Email del retailer',
+    required: false,
+  })
+  @IsOptional()
+  @IsEmail()
+  retailerEmail?: string;
 }

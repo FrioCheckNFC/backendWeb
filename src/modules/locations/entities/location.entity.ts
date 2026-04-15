@@ -8,7 +8,7 @@ import {
   Index,
 } from 'typeorm';
 
-@Entity('locations')
+@Entity('stores')
 @Index(['tenantId', 'name'], { unique: true })
 @Index(['tenantId'])
 export class Location {
@@ -19,7 +19,13 @@ export class Location {
   @Column({ name: 'tenant_id', type: 'uuid' })
   tenantId: string;
 
-  // Nombre de la ubicación (sucursal, centro de distribución, etc)
+  @Column({ name: 'sector_id', type: 'uuid', nullable: true })
+  sectorId: string;
+
+  @Column({ name: 'retailer_id', type: 'uuid', nullable: true })
+  retailerId: string;
+
+  // Nombre del local
   @Column({ type: 'varchar', length: 255 })
   name: string;
 
@@ -47,21 +53,17 @@ export class Location {
   })
   longitude: number;
 
-  // Nombre de contacto para la ubicación
-  @Column({ name: 'contact_name', type: 'varchar', length: 255, nullable: true })
-  contactName: string;
+  @Column({ name: 'retailer_name', type: 'varchar', length: 255, nullable: true })
+  retailerName: string;
 
-  // Teléfono de contacto (opcional)
-  @Column({ name: 'phone', type: 'varchar', length: 20, nullable: true })
-  phone: string;
+  @Column({ name: 'retailer_rut', type: 'varchar', length: 20, nullable: true })
+  retailerRut: string;
 
-  // Email de contacto (opcional)
-  @Column({ type: 'varchar', length: 255, nullable: true })
-  email: string;
+  @Column({ name: 'retailer_phone', type: 'varchar', length: 20, nullable: true })
+  retailerPhone: string;
 
-  // Descripción adicional
-  @Column({ type: 'text', nullable: true })
-  description: string;
+  @Column({ name: 'retailer_email', type: 'varchar', length: 255, nullable: true })
+  retailerEmail: string;
 
   // Indicador de ubicación activa
   @Column({ name: 'is_active', type: 'boolean', default: true })

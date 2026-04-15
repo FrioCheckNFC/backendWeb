@@ -21,6 +21,7 @@ import { KpisModule } from './modules/kpis/kpis.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { SalesModule } from './modules/sales/sales.module';
 import { SyncQueueModule } from './modules/sync-queue/sync-queue.module';
+import { LocationsModule } from './modules/locations/locations.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { SyncQueueModule } from './modules/sync-queue/sync-queue.module';
     InventoryModule,
     SalesModule,
     SyncQueueModule,
+    LocationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
