@@ -6,34 +6,32 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Node.js version
+      
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '22.x'
-      - name: npm install, build
-        run: |
-          npm install
-          npm run build
-      - name: Upload artifact
+          
+      - name: Install
+        run: npm install
+          
+      - name: Upload ALL project
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: dist
+          path: .
   deploy:
     runs-on: ubuntu-latest
     needs: build
-    permissions:
-      contents: read
     steps:
-      - name: Download artifact
+      - name: Download
         uses: actions/download-artifact@v4
         with:
           name: node-app
-      - name: Deploy to Azure Web App
+          
+      - name: Deploy to Azure
         uses: azure/webapps-deploy@v3
         with:
           app-name: FriocheckWEB
