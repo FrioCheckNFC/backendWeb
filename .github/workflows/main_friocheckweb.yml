@@ -8,14 +8,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '22.x'
+          
       - name: Install and build
         run: |
           npm install
           npm run build
+          
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -29,12 +32,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: dist
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_PUBLISH_PROFILE }}
-      - name: Deploy to Azure
+          
+      - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: FriocheckWEB
           package: .
+          publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE }}
+          slot-name: production
