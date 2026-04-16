@@ -8,20 +8,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '22.x'
-      - name: Install and BUILD
-        run: |
-          npm install --legacy-peer-deps
-          npm run build
+
+      - name: Install all dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Build
+        run: npm run build
+
+      - name: Install prod dependencies
+        run: npm install --omit=dev --legacy-peer-deps
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: dist
           path: |
             dist
+            node_modules
             package.json
             package-lock.json
 
@@ -33,6 +41,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: dist
+
       - name: Deploy
         uses: azure/webapps-deploy@v3
         with:
