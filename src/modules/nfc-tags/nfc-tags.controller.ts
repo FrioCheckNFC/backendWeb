@@ -108,31 +108,26 @@ export class NfcTagsController {
     status: 200,
     description: 'Lista de tags NFC obtenida exitosamente',
     type: NfcTagListResponseDto,
-    examples: {
-      ejemplo: {
-        summary: 'Respuesta exitosa',
-        value: {
-          tags: [
-            {
-              id: 'eda94cc6-2f1b-465c-8881-6d479c2ab452',
-              tenantId: 'ff89158e-a521-4168-8a9f-cecb78d6f408',
-              machineId: '595b8f06-5fc4-42f3-854a-2f1b8e1732d1',
-              uid: 'NFC-68212T',
-              tagModel: 'NTAG-215',
-              hardwareModel: 'NTAG215',
-              machineSerialId: 'SN-RF-00001',
-              tenantIdObfuscated: 'ff89158e',
-              integrityChecksum: 'k57fbxtpm6tvrfg19a074a',
-              isLocked: false,
-              isActive: true,
-              createdAt: '2026-03-30T15:13:37.475249Z',
-              updatedAt: '2026-03-30T15:13:37.475249Z',
-              deletedAt: null,
-            },
-          ],
-          total: 1,
+    example: {
+      tags: [
+        {
+          id: 'eda94cc6-2f1b-465c-8881-6d479c2ab452',
+          tenantId: 'ff89158e-a521-4168-8a9f-cecb78d6f408',
+          machineId: '595b8f06-5fc4-42f3-854a-2f1b8e1732d1',
+          uid: 'NFC-68212T',
+          tagModel: 'NTAG-215',
+          hardwareModel: 'NTAG215',
+          machineSerialId: 'SN-RF-00001',
+          tenantIdObfuscated: 'ff89158e',
+          integrityChecksum: 'k57fbxtpm6tvrfg19a074a',
+          isLocked: false,
+          isActive: true,
+          createdAt: '2026-03-30T15:13:37.475249Z',
+          updatedAt: '2026-03-30T15:13:37.475249Z',
+          deletedAt: null,
         },
-      },
+      ],
+      total: 1,
     },
   })
   @ApiResponse({

@@ -113,8 +113,8 @@ export class VisitsController {
 
   @Get('user/:userId/range')
   @ApiOperation({ summary: 'Obtener visitas de un usuario en un rango de fechas (Automático - obtiene tenantId del usuario)' })
-  @ApiQuery({ name: 'startDate', required: true, type: 'string', format: 'date-time', description: 'Fecha inicial (ISO 8601)' })
-  @ApiQuery({ name: 'endDate', required: true, type: 'string', format: 'date-time', description: 'Fecha final (ISO 8601)' })
+  @ApiQuery({ name: 'startDate', required: true, type: String, description: 'Fecha inicial (ISO 8601)', example: '2026-01-01T00:00:00.000Z' })
+  @ApiQuery({ name: 'endDate', required: true, type: String, description: 'Fecha final (ISO 8601)', example: '2026-01-31T23:59:59.999Z' })
   async findByUserDateRange(
     @Param('userId') userId: string,
     @GetUser() user: User,
