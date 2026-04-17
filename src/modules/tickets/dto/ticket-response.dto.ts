@@ -1,4 +1,4 @@
-import { TicketStatus, TicketPriority, TicketType } from '../entities/ticket.entity';
+import { TicketStatus, TicketPriority } from '../entities/ticket.entity';
 import { UserRole } from '../../users/entities/user.entity';
 import { MachineStatus } from '../../machines/entities/machine.entity';
 
@@ -9,7 +9,7 @@ export class TicketUserDto {
   firstName: string;
   lastName: string;
   phone?: string;
-  role: UserRole;
+  role?: UserRole;
   active: boolean;
 }
 
@@ -48,8 +48,7 @@ export class TicketResponseDto {
   resolvedBy?: TicketUserDto;
   resolvedById?: string;
 
-  // Estado y tipo del ticket
-  type: TicketType;
+  // Estado del ticket
   priority: TicketPriority;
   status: TicketStatus;
 
@@ -57,16 +56,7 @@ export class TicketResponseDto {
   title: string;
   description?: string;
 
-  // Resolución
-  resolutionNotes?: string;
-  resolvedAt?: Date;
-
-  // Información adicional
-  canUseManualEntry: boolean;
-  manualMachineId?: string;
-  machinePhotoPlateUrl?: string;
-  dueDate?: Date;
-  timeSpentMinutes: number;
+  tenantName?: string;
 
   // Timestamps
   createdAt: Date;

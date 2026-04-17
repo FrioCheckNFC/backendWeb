@@ -3,6 +3,7 @@ import {
   IsEnum,
   IsUUID,
   IsOptional,
+  IsBoolean,
   IsNumber,
   MaxLength,
   Min,
@@ -100,11 +101,20 @@ export class UpdateMachineDto {
   assignedUserId?: string;
 
   @ApiProperty({
-    description: 'ID del sector donde está ubicada la máquina',
+    description: 'ID de la tienda donde está ubicada la máquina',
     example: '550e8400-e29b-41d4-a716-446655440002',
     required: false,
   })
   @IsOptional()
-  @IsUUID('4', { message: 'El sectorId debe ser un UUID válido' })
-  sectorId?: string;
+  @IsUUID('4', { message: 'El storeId debe ser un UUID válido' })
+  storeId?: string;
+
+  @ApiProperty({
+    description: 'Indica si la máquina está activa',
+    example: true,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean({ message: 'El isActive debe ser boolean' })
+  isActive?: boolean;
 }

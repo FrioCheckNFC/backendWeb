@@ -3,11 +3,11 @@ import {
   IsNotEmpty,
   IsString,
   IsUUID,
-  IsEnum,
+  IsIn,
   MinLength,
   IsOptional,
 } from 'class-validator';
-import { TicketType, TicketPriority } from '../entities/ticket.entity';
+import { TicketPriority, TicketStatus } from '../entities/ticket.entity';
 
 export class CreateTicketDto {
   @ApiProperty({
@@ -18,23 +18,29 @@ export class CreateTicketDto {
   @IsUUID()
   machineId: string;
 
-  @ApiProperty({
-    example: 'falla',
-    enum: TicketType,
-    description: 'Tipo de ticket: falla, merma, error_nfc, mantenimiento, otro',
-  })
-  @IsNotEmpty()
-  @IsEnum(TicketType)
-  type: TicketType;
-
   @ApiProperty({ 
-    example: 'alta', 
+    example: 'high', 
     required: false, 
-    description: 'Prioridad: baja, media, alta, critica' 
+    enum: TicketPriority,
+    description: 'Prioridad del ticket (low, medium, high, critical)' 
   })
   @IsOptional()
-  @IsEnum(TicketPriority)
+  @IsIn(Object.values(TicketPriority), {
+    message: 'priority debe ser uno de: low, medium, high, critical',
+  })
   priority?: TicketPriority;
+
+  @ApiProperty({
+    example: 'open',
+    required: false,
+    enum: TicketStatus,
+    description: 'Estado inicial del ticket (por defecto open)',
+  })
+  @IsOptional()
+  @IsIn(Object.values(TicketStatus), {
+    message: 'status debe ser uno de: open, assigned, in_progress, resolved, closed',
+  })
+  status?: TicketStatus;
 
   @ApiProperty({
     example: 'Máquina no enciende',
@@ -55,36 +61,11 @@ export class CreateTicketDto {
   description?: string;
 
   @ApiProperty({
-    example: false,
+    example: '660e8400-e29b-41d4-a716-446655440111',
     required: false,
-    description: 'Si se puede usar entrada manual',
+    description: 'ID del técnico asignado (opcional)',
   })
   @IsOptional()
-  canUseManualEntry?: boolean;
-
-  @ApiProperty({
-    example: 'MANUAL-001',
-    required: false,
-    description: 'ID de máquina ingresado manualmente',
-  })
-  @IsOptional()
-  @IsString()
-  manualMachineId?: string;
-
-  @ApiProperty({
-    example: 'https://example.com/photos/machine-001.jpg',
-    required: false,
-    description: 'URL de foto de la placa de la máquina',
-  })
-  @IsOptional()
-  @IsString()
-  machinePhotoPlateUrl?: string;
-
-  @ApiProperty({
-    example: '2026-04-10T14:00:00Z',
-    required: false,
-    description: 'Fecha límite para resolver el ticket',
-  })
-  @IsOptional()
-  dueDate?: Date;
+  @IsUUID()
+  assignedToId?: string;
 }

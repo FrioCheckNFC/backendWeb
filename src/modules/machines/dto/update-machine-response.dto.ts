@@ -67,11 +67,24 @@ export class UpdateMachineResponseDto {
   status: MachineStatus;
 
   @ApiProperty({
-    description: 'ID del sector donde está ubicada la máquina',
+    description: 'ID de la tienda donde está ubicada la máquina',
     example: '550e8400-e29b-41d4-a716-446655440002',
     nullable: true,
   })
-  sectorId: string | null;
+  storeId: string | null;
+
+  @ApiProperty({
+    description: 'Nombre de la tienda asociada',
+    example: 'SuperFrio Refrigeración',
+    nullable: true,
+  })
+  storeName?: string | null;
+
+  @ApiProperty({
+    description: 'Indica si la máquina está activa',
+    example: true,
+  })
+  isActive: boolean;
 
   @ApiProperty({
     description: 'Fecha de creación',

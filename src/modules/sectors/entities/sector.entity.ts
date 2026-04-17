@@ -190,6 +190,6 @@ export class Sector {
     type: () => Machine,
     isArray: true,
   })
-  @OneToMany(() => Machine, (machine) => machine.sector, { lazy: true })
+  @OneToMany(() => Machine, (machine) => machine.storeId, { lazy: true })
   machines?: Machine[];
 }

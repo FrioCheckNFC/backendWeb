@@ -17,18 +17,18 @@ export enum TicketType {
 }
 
 export enum TicketStatus {
-  OPEN = 'OPEN',
-  ASSIGNED = 'ASSIGNED',
-  IN_PROGRESS = 'IN_PROGRESS',
-  RESOLVED = 'RESOLVED',
-  CLOSED = 'CLOSED',
+  OPEN = 'open',
+  ASSIGNED = 'assigned',
+  IN_PROGRESS = 'in_progress',
+  RESOLVED = 'resolved',
+  CLOSED = 'closed',
 }
 
 export enum TicketPriority {
-  LOW = 'baja',
-  MEDIUM = 'media',
-  HIGH = 'alta',
-  CRITICAL = 'critica',
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+  CRITICAL = 'critical',
 }
 
 @Entity('tickets')
@@ -47,40 +47,23 @@ export class Ticket {
   @Column({ name: 'machine_id', type: 'uuid', nullable: true })
   machineId: string;
 
-  // Usuario que reportó el problema
-  @Column({ name: 'reported_by_id', type: 'uuid' })
+  // Usuario creador del ticket (compatibilidad: se expone como reportedById en API)
+  @Column({ name: 'created_by_id', type: 'uuid' })
   reportedById: string;
 
   // Usuario asignado a resolver el ticket
   @Column({ name: 'assigned_to_id', type: 'uuid', nullable: true })
   assignedToId: string;
 
-  // Usuario que resolvió el ticket
-  @Column({ name: 'resolved_by_id', type: 'uuid', nullable: true })
-  resolvedById: string;
-
-  // Tipo de ticket
-  @Column({
-    type: 'enum',
-    enum: TicketType,
-    default: TicketType.FALLA,
-  })
-  type: TicketType;
+  // Usuario que resolvió: se deriva de assignedToId cuando status = RESOLVED
+  resolvedById?: string;
 
   // Prioridad del ticket
-  @Column({
-    type: 'enum',
-    enum: TicketPriority,
-    default: TicketPriority.MEDIUM,
-  })
+  @Column({ type: 'varchar', length: 20, default: TicketPriority.MEDIUM })
   priority: TicketPriority;
 
   // Estado del ticket
-  @Column({
-    type: 'enum',
-    enum: TicketStatus,
-    default: TicketStatus.OPEN,
-  })
+  @Column({ type: 'varchar', length: 20, default: TicketStatus.OPEN })
   status: TicketStatus;
 
   // Título del ticket
@@ -91,33 +74,8 @@ export class Ticket {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  // Si se puede usar entrada manual
-  @Column({ name: 'can_use_manual_entry', type: 'boolean', default: false })
-  canUseManualEntry: boolean;
-
-  // ID de máquina ingresada manualmente (si no se encontró por NFC)
-  @Column({ name: 'manual_machine_id', type: 'varchar', length: 255, nullable: true })
-  manualMachineId: string;
-
-  // URL de foto de la placa de máquina
-  @Column({ name: 'machine_photo_plate_url', type: 'varchar', length: 2048, nullable: true })
-  machinePhotoPlateUrl: string;
-
-  // Notas de resolución
-  @Column({ name: 'resolution_notes', type: 'text', nullable: true })
-  resolutionNotes: string;
-
-  // Fecha de resolución
-  @Column({ name: 'resolved_at', type: 'timestamp', nullable: true })
-  resolvedAt: Date;
-
-  // Fecha límite para resolver
-  @Column({ name: 'due_date', type: 'timestamp', nullable: true })
-  dueDate: Date;
-
-  // Tiempo invertido en minutos
-  @Column({ name: 'time_spent_minutes', type: 'int', default: 0 })
-  timeSpentMinutes: number;
+  @Column({ name: 'tenant_name', type: 'varchar', length: 255, nullable: true })
+  tenantName?: string;
 
   // Timestamps automáticos
   @CreateDateColumn({ name: 'created_at' })

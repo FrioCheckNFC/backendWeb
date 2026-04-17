@@ -23,7 +23,7 @@ import { TicketsService } from './tickets.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { Ticket, TicketStatus, TicketPriority } from './entities/ticket.entity';
-import { TicketResponseDto } from './dto/ticket-response.dto';
+import { CreateTicketDto, TicketResponseDto } from './dto';
 
 @ApiTags('Tickets')
 @ApiBearerAuth()
@@ -35,72 +35,34 @@ export class TicketsController {
   @Post()
   @ApiOperation({ 
     summary: 'Crear un nuevo ticket',
-    description: 'Crea un nuevo ticket. El usuario autenticado es asignado automáticamente como reportador. Retorna la información completa del ticket con datos de máquina y usuarios relacionados.'
+    description: 'Crea un ticket usando el tenant y usuario autenticado. El backend asigna automáticamente tenant_id y created_by_id desde el JWT.'
   })
   @ApiBody({
-    type: Ticket,
+    type: CreateTicketDto,
     required: true,
-    description: 'Datos del nuevo ticket. El tenantId y reported_by_id se asignan automáticamente desde el token JWT.',
+    description: 'Payload para crear ticket. tenant_id y created_by_id se completan automáticamente desde el token JWT.',
     examples: {
-      ejemplo_mantenimiento: {
-        summary: 'Ejemplo: Ticket de Mantenimiento',
-        description: 'Ticket de mantenimiento preventivo en una máquina',
+      ejemplo_base: {
+        summary: 'Ejemplo base',
+        description: 'Ticket alineado a columnas reales en BD',
         value: {
           machineId: '660e8400-e29b-41d4-a716-446655440000',
-          type: 'mantenimiento',
-          priority: 'media',
-          title: 'Mantenimiento preventivo periódico',
-          description: 'Realizar mantenimiento preventivo en la máquina vending según cronograma',
-          dueDate: '2026-04-10T14:00:00Z',
-          canUseManualEntry: false,
+          title: 'Falla en SN-RF-00001',
+          description: 'La máquina no enfría correctamente.',
+          priority: 'high',
+          status: 'open',
         },
       },
-      ejemplo_falla: {
-        summary: 'Ejemplo: Ticket de Falla',
-        description: 'Ticket de falla urgente con alta prioridad',
+      ejemplo_con_asignacion: {
+        summary: 'Ejemplo con técnico asignado',
+        description: 'Permite asignar assigned_to_id al crear si el usuario es TECHNICIAN',
         value: {
           machineId: '660e8400-e29b-41d4-a716-446655440001',
-          type: 'falla',
-          priority: 'critica',
+          priority: 'critical',
+          status: 'assigned',
           title: 'Máquina no dispensa productos',
-          description: 'La máquina ha dejado de dispensar productos. Revisar módulo dispensador.',
-          dueDate: '2026-04-02T18:00:00Z',
-          machinePhotoPlateUrl: 'https://example.com/photos/machine-001.jpg',
-          canUseManualEntry: true,
-          manualMachineId: 'MANUAL-001',
-        },
-      },
-      ejemplo_error_nfc: {
-        summary: 'Ejemplo: Ticket de Error NFC',
-        description: 'Ticket de error en lectura de etiqueta NFC',
-        value: {
-          machineId: '660e8400-e29b-41d4-a716-446655440002',
-          type: 'error_nfc',
-          priority: 'alta',
-          title: 'Error en lectura NFC',
-          description: 'La máquina no lee correctamente la etiqueta NFC. Verificar lector.',
-          dueDate: '2026-04-05T10:00:00Z',
-          canUseManualEntry: true,
-        },
-      },
-      ejemplo_merma: {
-        summary: 'Ejemplo: Ticket de Merma',
-        description: 'Reporte de merma o pérdida de inventario',
-        value: {
-          machineId: '660e8400-e29b-41d4-a716-446655440003',
-          type: 'merma',
-          priority: 'media',
-          title: 'Merma detectada',
-          description: 'Se detectó una merma de productos en la máquina',
-        },
-      },
-      ejemplo_minimo: {
-        summary: 'Ejemplo: Ticket Mínimo',
-        description: 'Ticket con datos mínimos obligatorios requeridos',
-        value: {
-          machineId: '660e8400-e29b-41d4-a716-446655440004',
-          type: 'falla',
-          title: 'Falla detectada en máquina',
+          description: 'Revisar módulo dispensador',
+          assignedToId: '660e8400-e29b-41d4-a716-446655440111',
         },
       },
     },
@@ -115,10 +77,11 @@ export class TicketsController {
     description: 'Datos inválidos o faltantes',
   })
   async create(
-    @Body() data: Partial<Ticket>,
+    @Body() data: CreateTicketDto,
     @GetUser('id') userId: string,
+    @GetUser('tenantId') tenantId: string,
   ): Promise<TicketResponseDto> {
-    return this.ticketsService.create(data, userId);
+    return this.ticketsService.create(data, userId, tenantId);
   }
 
   @Get()

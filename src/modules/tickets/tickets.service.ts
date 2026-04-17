@@ -2,12 +2,14 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
-import { Ticket, TicketStatus, TicketPriority, TicketType } from './entities/ticket.entity';
-import { Machine } from '../machines/entities/machine.entity';
-import { User } from '../users/entities/user.entity';
+import { Ticket, TicketStatus, TicketPriority } from './entities/ticket.entity';
+import { User, UserRole } from '../users/entities/user.entity';
+import { Tenant } from '../tenants/entities/tenant.entity';
+import { CreateTicketDto } from './dto';
 
 @Injectable()
 export class TicketsService {
@@ -15,39 +17,41 @@ export class TicketsService {
     @InjectRepository(Ticket)
     private ticketsRepo: Repository<Ticket>,
 
-    @InjectRepository(Machine)
-    private machinesRepo: Repository<Machine>,
-
     @InjectRepository(User)
     private usersRepo: Repository<User>,
+
+    @InjectRepository(Tenant)
+    private tenantsRepo: Repository<Tenant>,
   ) {}
 
   /**
    * Crear un nuevo ticket
-   * El usuario actual será asignado como reportedById automáticamente
+   * tenant_id y created_by_id se asignan automáticamente desde el usuario autenticado
    */
-  async create(data: Partial<Ticket>, currentUserId: string): Promise<any> {
-    // Usar el usuario autenticado como quien reporta el ticket
-    data.reportedById = currentUserId;
+  async create(data: CreateTicketDto, currentUserId: string, tenantId: string): Promise<any> {
+    const normalizedPriority = this.normalizePriority(data.priority);
+    const normalizedStatus = this.normalizeStatus(data.status);
 
-    // Validar que la máquina existe si se proporciona
-    if (data.machineId) {
-      const machine = await this.machinesRepo.findOne({
-        where: {
-          id: data.machineId,
-          tenantId: data.tenantId,
-          deletedAt: IsNull(),
-        },
-      });
-
-      if (!machine) {
-        throw new NotFoundException(
-          `Máquina con ID ${data.machineId} no encontrada para este tenant`,
-        );
-      }
+    if (data.assignedToId) {
+      await this.validateTechnicianAssignment(tenantId, data.assignedToId);
     }
 
-    const ticket = this.ticketsRepo.create(data);
+    const tenant = await this.tenantsRepo.findOne({
+      where: { id: tenantId, deletedAt: IsNull() },
+    });
+
+    const ticket = this.ticketsRepo.create({
+      tenantId,
+      machineId: data.machineId,
+      reportedById: currentUserId,
+      assignedToId: data.assignedToId,
+      title: data.title,
+      description: data.description,
+      priority: normalizedPriority,
+      status: normalizedStatus,
+      tenantName: tenant?.name,
+    });
+
     const saved = await this.ticketsRepo.save(ticket);
 
     // Enriquecer con relaciones
@@ -141,6 +145,8 @@ export class TicketsService {
       throw new ConflictException('No se pueden asignar tickets cerrados o cancelados');
     }
 
+    await this.validateTechnicianAssignment(tenantId, assignedToId);
+
     ticket.assignedToId = assignedToId;
 
     // Si el ticket está en estado OPEN, cambiar a ASSIGNED
@@ -172,10 +178,6 @@ export class TicketsService {
     }
 
     ticket.status = TicketStatus.RESOLVED;
-    ticket.resolvedAt = new Date();
-    if (resolutionNotes) {
-      ticket.resolutionNotes = resolutionNotes;
-    }
 
     const updated = await this.ticketsRepo.save(ticket);
 
@@ -251,16 +253,6 @@ export class TicketsService {
   private async enrichTicket(ticket: Ticket): Promise<any> {
     const enriched: any = { ...ticket };
 
-    // Cargar máquina si existe
-    if (ticket.machineId) {
-      enriched.machine = await this.machinesRepo.findOne({
-        where: {
-          id: ticket.machineId,
-          deletedAt: IsNull(),
-        },
-      });
-    }
-
     // Cargar usuario que reportó
     if (ticket.reportedById) {
       const reportedByUser = await this.usersRepo.findOne({
@@ -276,7 +268,7 @@ export class TicketsService {
           firstName: reportedByUser.firstName,
           lastName: reportedByUser.lastName,
           phone: reportedByUser.phone,
-          role: reportedByUser.role,
+          role: this.getPrimaryRole(reportedByUser.role),
           active: reportedByUser.active,
         };
       }
@@ -297,17 +289,22 @@ export class TicketsService {
           firstName: assignedToUser.firstName,
           lastName: assignedToUser.lastName,
           phone: assignedToUser.phone,
-          role: assignedToUser.role,
+          role: this.getPrimaryRole(assignedToUser.role),
           active: assignedToUser.active,
         };
       }
     }
 
-    // Cargar usuario que resolvió
-    if (ticket.resolvedById) {
+    // Cargar usuario que resolvió (se deriva del técnico asignado al resolver)
+    const resolverUserId = ticket.status === TicketStatus.RESOLVED
+      ? ticket.assignedToId
+      : ticket.resolvedById;
+
+    if (resolverUserId) {
+      enriched.resolvedById = resolverUserId;
       const resolvedByUser = await this.usersRepo.findOne({
         where: {
-          id: ticket.resolvedById,
+          id: resolverUserId,
           deletedAt: IsNull(),
         },
       });
@@ -318,12 +315,58 @@ export class TicketsService {
           firstName: resolvedByUser.firstName,
           lastName: resolvedByUser.lastName,
           phone: resolvedByUser.phone,
-          role: resolvedByUser.role,
+          role: this.getPrimaryRole(resolvedByUser.role),
           active: resolvedByUser.active,
         };
       }
     }
 
     return enriched;
+  }
+
+  private getPrimaryRole(roles: UserRole[] | undefined): UserRole | undefined {
+    if (!Array.isArray(roles) || roles.length === 0) {
+      return undefined;
+    }
+
+    return roles[0];
+  }
+
+  private normalizePriority(priority?: TicketPriority): TicketPriority {
+    if (!priority) {
+      return TicketPriority.MEDIUM;
+    }
+
+    return String(priority).toLowerCase() as TicketPriority;
+  }
+
+  private normalizeStatus(status?: TicketStatus): TicketStatus {
+    if (!status) {
+      return TicketStatus.OPEN;
+    }
+
+    return String(status).toLowerCase() as TicketStatus;
+  }
+
+  private async validateTechnicianAssignment(tenantId: string, assignedToId: string): Promise<void> {
+    const assignedUser = await this.usersRepo.findOne({
+      where: {
+        id: assignedToId,
+        tenantId,
+        deletedAt: IsNull(),
+      },
+    });
+
+    if (!assignedUser) {
+      throw new NotFoundException(`Usuario con ID ${assignedToId} no encontrado en este tenant`);
+    }
+
+    const assignedUserRoles = Array.isArray(assignedUser.role)
+      ? assignedUser.role
+      : [];
+
+    if (!assignedUserRoles.includes(UserRole.TECHNICIAN)) {
+      throw new BadRequestException('assigned_to_id debe pertenecer a un usuario con rol TECHNICIAN');
+    }
   }
 }

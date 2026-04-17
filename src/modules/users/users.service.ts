@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User, UserRole } from './entities/user.entity';
 import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto';
@@ -54,6 +54,26 @@ export class UsersService {
   async findAll(): Promise<UserResponseDto[]> {
     const users = await this.usersRepo.find();
     return users.map(user => this.mapUserToResponse(user));
+  }
+
+  /**
+   * Buscar usuarios por nombre o apellido
+   */
+  async searchByName(name: string): Promise<UserResponseDto[]> {
+    const term = (name || '').trim();
+    if (!term) {
+      return [];
+    }
+
+    const users = await this.usersRepo.find({
+      where: [
+        { firstName: ILike(`%${term}%`) },
+        { lastName: ILike(`%${term}%`) },
+      ],
+      order: { firstName: 'ASC', lastName: 'ASC' },
+    });
+
+    return users.map((user) => this.mapUserToResponse(user));
   }
 
   /**
@@ -134,7 +154,7 @@ export class UsersService {
    * Eliminar un usuario (hard delete)
    * @param id UUID del usuario
    */
-  async delete(id: string): Promise<{ message: string }> {
+  async hardDelete(id: string): Promise<{ message: string }> {
     const user = await this.usersRepo.findOne({ where: { id } });
 
     if (!user) {
@@ -143,6 +163,14 @@ export class UsersService {
 
     await this.usersRepo.remove(user);
     return { message: `Usuario ${id} eliminado correctamente` };
+  }
+
+  /**
+   * Mantener compatibilidad: delete() realiza desactivación lógica
+   * @param id UUID del usuario
+   */
+  async delete(id: string): Promise<UserResponseDto> {
+    return this.deactivate(id);
   }
 
   /**

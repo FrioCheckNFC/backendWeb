@@ -4,14 +4,17 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, FindOptionsWhere, IsNull } from 'typeorm';
+import { Repository, FindOptionsWhere, In, IsNull } from 'typeorm';
 import { Machine, MachineStatus } from './entities/machine.entity';
+import { Location } from '../locations/entities/location.entity';
 
 @Injectable()
 export class MachinesService {
   constructor(
     @InjectRepository(Machine)
     private machinesRepo: Repository<Machine>,
+    @InjectRepository(Location)
+    private locationsRepo: Repository<Location>,
   ) {}
 
   /**
@@ -30,8 +33,11 @@ export class MachinesService {
       );
     }
 
+    await this.validateStoreIfPresent(tenantId, data.storeId);
+
     const machine = this.machinesRepo.create(data);
-    return this.machinesRepo.save(machine);
+    const saved = await this.machinesRepo.save(machine);
+    return this.enrichMachineWithStoreName(saved);
   }
 
   /**
@@ -56,7 +62,8 @@ export class MachinesService {
       order: { createdAt: 'DESC' },
     });
 
-    return { machines, total };
+    const enrichedMachines = await this.enrichMachinesWithStoreName(machines);
+    return { machines: enrichedMachines, total };
   }
 
   /**
@@ -71,7 +78,7 @@ export class MachinesService {
       throw new NotFoundException(`Máquina con ID ${id} no encontrada`);
     }
 
-    return machine;
+    return this.enrichMachineWithStoreName(machine);
   }
 
   /**
@@ -79,8 +86,10 @@ export class MachinesService {
    */
   async update(id: string, tenantId: string, data: Partial<Machine>): Promise<Machine> {
     const machine = await this.findOne(id, tenantId);
+    await this.validateStoreIfPresent(tenantId, data.storeId);
     Object.assign(machine, data);
-    return this.machinesRepo.save(machine);
+    const updated = await this.machinesRepo.save(machine);
+    return this.enrichMachineWithStoreName(updated);
   }
 
   /**
@@ -97,27 +106,32 @@ export class MachinesService {
   async changeStatus(id: string, tenantId: string, newStatus: MachineStatus): Promise<Machine> {
     const machine = await this.findOne(id, tenantId);
     machine.status = newStatus;
-    return this.machinesRepo.save(machine);
+    const updated = await this.machinesRepo.save(machine);
+    return this.enrichMachineWithStoreName(updated);
   }
 
   /**
    * Obtener máquinas por estado
    */
   async findByStatus(tenantId: string, status: MachineStatus): Promise<Machine[]> {
-    return this.machinesRepo.find({
+    const machines = await this.machinesRepo.find({
       where: { tenantId, status, deletedAt: IsNull() },
       order: { createdAt: 'DESC' },
     });
+
+    return this.enrichMachinesWithStoreName(machines);
   }
 
   /**
    * Obtener máquinas asignadas a un usuario
    */
   async findByAssignedUser(tenantId: string, assignedUserId: string): Promise<Machine[]> {
-    return this.machinesRepo.find({
+    const machines = await this.machinesRepo.find({
       where: { tenantId, assignedUserId, deletedAt: IsNull() },
       order: { createdAt: 'DESC' },
     });
+
+    return this.enrichMachinesWithStoreName(machines);
   }
 
   /**
@@ -132,6 +146,71 @@ export class MachinesService {
       throw new NotFoundException(`Máquina con serial ${serialNumber} no encontrada`);
     }
 
+    return this.enrichMachineWithStoreName(machine);
+  }
+
+  private async validateStoreIfPresent(tenantId?: string, storeId?: string): Promise<void> {
+    if (!storeId) {
+      return;
+    }
+
+    const store = await this.locationsRepo.findOne({
+      where: {
+        id: storeId,
+        tenantId,
+        deletedAt: IsNull(),
+      },
+    });
+
+    if (!store) {
+      throw new NotFoundException(`Tienda con ID ${storeId} no encontrada para este tenant`);
+    }
+  }
+
+  private async enrichMachineWithStoreName(machine: Machine): Promise<Machine> {
+    if (!machine.storeId) {
+      machine.storeName = undefined;
+      return machine;
+    }
+
+    const store = await this.locationsRepo.findOne({
+      where: {
+        id: machine.storeId,
+        tenantId: machine.tenantId,
+        deletedAt: IsNull(),
+      },
+    });
+
+    machine.storeName = store?.name;
     return machine;
+  }
+
+  private async enrichMachinesWithStoreName(machines: Machine[]): Promise<Machine[]> {
+    const storeIds = Array.from(
+      new Set(
+        machines
+          .map((machine) => machine.storeId)
+          .filter((storeId): storeId is string => Boolean(storeId)),
+      ),
+    );
+
+    if (storeIds.length === 0) {
+      return machines;
+    }
+
+    const stores = await this.locationsRepo.find({
+      where: {
+        id: In(storeIds),
+        deletedAt: IsNull(),
+      },
+    });
+
+    const storesById = new Map(stores.map((store) => [store.id, store.name]));
+
+    machines.forEach((machine) => {
+      machine.storeName = machine.storeId ? storesById.get(machine.storeId) : undefined;
+    });
+
+    return machines;
   }
 }

@@ -6,11 +6,8 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
   Index,
-  ManyToOne,
-  JoinColumn,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-import { Sector } from '../../sectors/entities/sector.entity';
 
 export enum MachineStatus {
   ACTIVE = 'ACTIVE',
@@ -23,7 +20,7 @@ export enum MachineStatus {
 @Entity('machines')
 @Index(['tenantId', 'status'])
 @Index(['tenantId', 'assignedUserId'])
-@Index(['tenantId', 'sectorId'])
+@Index(['tenantId', 'storeId'])
 @Index(['tenantId', 'serialNumber'], { unique: true })
 export class Machine {
   @ApiProperty({
@@ -49,20 +46,19 @@ export class Machine {
   assignedUserId: string;
 
   @ApiProperty({
-    description: 'ID del local/sector donde está la máquina',
+    description: 'ID de la tienda donde está la máquina',
     example: '123e4567-e89b-12d3-a456-426614174000',
     nullable: true,
   })
-  @Column({ name: 'sector_id', type: 'uuid', nullable: true })
-  sectorId: string;
+  @Column({ name: 'store_id', type: 'uuid', nullable: true })
+  storeId: string;
 
   @ApiProperty({
-    description: 'Relación al local/sector',
-    type: () => Sector,
+    description: 'Nombre de la tienda (resuelto desde store_id)',
+    example: 'SuperFrio Refrigeración',
+    nullable: true,
   })
-  @ManyToOne(() => Sector, (sector) => sector.machines, { nullable: true })
-  @JoinColumn({ name: 'sector_id' })
-  sector?: Sector;
+  storeName?: string;
 
   @ApiProperty({
     description: 'Número de serie único de la máquina',
@@ -134,6 +130,13 @@ export class Machine {
     default: MachineStatus.ACTIVE,
   })
   status: MachineStatus;
+
+  @ApiProperty({
+    description: 'Indica si la máquina está activa',
+    example: true,
+  })
+  @Column({ name: 'is_active', type: 'boolean', default: true })
+  isActive: boolean;
 
   @ApiProperty({
     description: 'Fecha de creación',

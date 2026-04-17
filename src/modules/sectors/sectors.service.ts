@@ -155,7 +155,7 @@ export class SectorsService {
 
     // Obtener máquinas del sector
     const machines = await this.machinesRepo.find({
-      where: { sectorId: id },
+      where: { storeId: id },
       order: { createdAt: 'DESC' },
     });
 
@@ -190,7 +190,7 @@ export class SectorsService {
    */
   async countMachinesBySector(sectorId: string): Promise<number> {
     return this.machinesRepo.count({
-      where: { sectorId },
+      where: { storeId: sectorId },
     });
   }
 
@@ -199,7 +199,7 @@ export class SectorsService {
    */
   async countNfcTagsBySector(sectorId: string): Promise<number> {
     const machines = await this.machinesRepo.find({
-      where: { sectorId },
+      where: { storeId: sectorId },
       select: ['id'],
     });
 
