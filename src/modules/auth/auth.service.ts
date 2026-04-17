@@ -68,7 +68,7 @@ export class AuthService {
       firstName: data.firstName,
       lastName: data.lastName,
       tenantId: data.tenantId,
-      role: data.role,
+      role: [data.role],
       active: true,
     });
 

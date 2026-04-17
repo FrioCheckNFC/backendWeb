@@ -361,7 +361,10 @@ export class SectorsService {
         email: sector.contactUser.email,
         firstName: sector.contactUser.firstName,
         lastName: sector.contactUser.lastName,
-        role: sector.contactUser.role,
+        role:
+          Array.isArray(sector.contactUser.role) && sector.contactUser.role.length > 0
+            ? sector.contactUser.role[0]
+            : '',
         phone: sector.contactUser.phone,
       };
     }

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
@@ -35,7 +35,7 @@ export class UsersService {
       passwordHash,
       firstName,
       lastName,
-      role: role as UserRole,
+      role: [role as UserRole],
       tenantId,
       phone,
       active: true,
@@ -106,7 +106,7 @@ export class UsersService {
     // Actualizar campos opcionales
     if (updateUserDto.firstName) user.firstName = updateUserDto.firstName;
     if (updateUserDto.lastName) user.lastName = updateUserDto.lastName;
-    if (updateUserDto.role) user.role = updateUserDto.role;
+    if (updateUserDto.role) user.role = [updateUserDto.role];
     if (updateUserDto.phone !== undefined) user.phone = updateUserDto.phone;
     if (updateUserDto.active !== undefined) user.active = updateUserDto.active;
 
@@ -171,7 +171,7 @@ export class UsersService {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.role,
+      role: Array.isArray(user.role) && user.role.length > 0 ? user.role[0] : UserRole.VENDOR,
       tenantId: user.tenantId,
       phone: user.phone,
       active: user.active,

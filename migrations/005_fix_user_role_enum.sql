@@ -7,9 +7,43 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN null;
 END $$;
 
--- 2. Cambiar la columna de ARRAY a ENUM
-ALTER TABLE users
-ALTER COLUMN role TYPE user_role USING role::user_role;
+-- 2. Convertir role a ENUM user_role segun el tipo actual de la columna
+DO $$
+DECLARE
+    role_data_type text;
+BEGIN
+    SELECT data_type
+    INTO role_data_type
+    FROM information_schema.columns
+    WHERE table_name = 'users'
+      AND column_name = 'role';
+
+    IF role_data_type = 'ARRAY' THEN
+        EXECUTE '
+            ALTER TABLE users
+            ALTER COLUMN role DROP DEFAULT,
+            ALTER COLUMN role TYPE user_role
+            USING (
+                CASE
+                    WHEN role IS NULL OR array_length(role, 1) IS NULL THEN NULL
+                    ELSE UPPER(TRIM(role[1]))::user_role
+                END
+            )
+        ';
+    ELSIF role_data_type = 'character varying' OR role_data_type = 'text' THEN
+        EXECUTE '
+            ALTER TABLE users
+            ALTER COLUMN role DROP DEFAULT,
+            ALTER COLUMN role TYPE user_role
+            USING (
+                CASE
+                    WHEN role IS NULL THEN NULL
+                    ELSE UPPER(TRIM(role))::user_role
+                END
+            )
+        ';
+    END IF;
+END $$;
 
 -- 3. Agregar valor por defecto
 ALTER TABLE users

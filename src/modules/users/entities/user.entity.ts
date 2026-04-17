@@ -55,9 +55,9 @@ export class User {
   @Column({ nullable: true })
   phone: string;
 
-  // Rol del usuario: ADMIN, SUPPORT, VENDOR, RETAILER, TECHNICIAN, DRIVER (ENUM)
-  @Column({ type: 'enum', enum: UserRole, default: UserRole.VENDOR })
-  role: UserRole;
+  // Roles del usuario almacenados como arreglo de texto en BD
+  @Column({ type: 'text', array: true, default: () => "'{VENDOR}'" })
+  role: UserRole[];
 
   // Tokens FCM para notificaciones push (opcional)
   @Column({ name: 'fcm_tokens', type: 'text', nullable: true })
