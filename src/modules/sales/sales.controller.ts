@@ -17,7 +17,6 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { CreateSaleDto, UpdateSaleDto, SaleResponseDto } from './dto';
 import { User } from '../users/entities/user.entity';
-import { DeliveryStatus } from './entities/sale.entity';
 
 @ApiTags('Sales (Pedidos/Ventas)')
 @ApiBearerAuth()
@@ -49,9 +48,7 @@ export class SalesController {
     @Body() createSaleDto: CreateSaleDto,
     @GetUser() user: User,
   ): Promise<SaleResponseDto> {
-    // Asignar automáticamente el tenantId del usuario autenticado
-    createSaleDto.tenantId = user.tenantId;
-    return this.salesService.create(createSaleDto);
+    return this.salesService.create(user.tenantId, user.id, createSaleDto);
   }
 
   /**
@@ -97,16 +94,10 @@ export class SalesController {
     description: 'Filtrar por vendedor/usuario',
   })
   @ApiQuery({
-    name: 'retailerId',
+    name: 'machineId',
     required: false,
     type: String,
-    description: 'Filtrar por minorista/cliente (user con role RETAILER)',
-  })
-  @ApiQuery({
-    name: 'deliveryStatus',
-    required: false,
-    enum: ['PENDING', 'IN_TRANSIT', 'DELIVERED', 'CANCELLED', 'RETURNED'],
-    description: 'Filtrar por estado de entrega',
+    description: 'Filtrar por maquina',
   })
   @ApiResponse({
     status: 200,
@@ -127,16 +118,18 @@ export class SalesController {
     @Query('endDate') endDate?: string,
     @Query('sectorId') sectorId?: string,
     @Query('vendorId') vendorId?: string,
-    @Query('retailerId') retailerId?: string,
-    @Query('deliveryStatus') deliveryStatus?: DeliveryStatus,
+    @Query('machineId') machineId?: string,
+    @Query('skip') skip?: string,
+    @Query('take') take?: string,
   ) {
     return this.salesService.findAll(user.tenantId, {
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
       sectorId,
       vendorId,
-      retailerId,
-      deliveryStatus,
+      machineId,
+      skip: skip ? parseInt(skip, 10) : 0,
+      take: take ? parseInt(take, 10) : 20,
     });
   }
 
@@ -236,10 +229,16 @@ export class SalesController {
     description: 'Filtrar por sector',
   })
   @ApiQuery({
-    name: 'retailerId',
+    name: 'vendorId',
     required: false,
     type: String,
-    description: 'Filtrar por minorista/cliente',
+    description: 'Filtrar por vendedor',
+  })
+  @ApiQuery({
+    name: 'machineId',
+    required: false,
+    type: String,
+    description: 'Filtrar por maquina',
   })
   @ApiResponse({
     status: 200,
@@ -249,9 +248,6 @@ export class SalesController {
         totalSales: { type: 'number' },
         totalAmount: { type: 'number' },
         averageAmount: { type: 'number' },
-        saleCount: { type: 'number' },
-        pendingDeliveries: { type: 'number' },
-        deliveredCount: { type: 'number' },
       },
     },
   })
@@ -260,13 +256,15 @@ export class SalesController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('sectorId') sectorId?: string,
-    @Query('retailerId') retailerId?: string,
+    @Query('vendorId') vendorId?: string,
+    @Query('machineId') machineId?: string,
   ) {
     return this.salesService.getStatistics(user.tenantId, {
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
       sectorId,
-      retailerId,
+      vendorId,
+      machineId,
     });
   }
 }

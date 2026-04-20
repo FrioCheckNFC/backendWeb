@@ -15,7 +15,7 @@ export enum VisitStatus {
 }
 
 @Entity('visits')
-@Index(['tenantId', 'userId'])
+@Index(['tenantId', 'technicianId'])
 @Index(['tenantId', 'machineId'])
 @Index(['tenantId', 'status'])
 export class Visit {
@@ -26,86 +26,56 @@ export class Visit {
   @Column({ name: 'tenant_id', type: 'uuid' })
   tenantId: string;
 
-  // FK al usuario (técnico, vendedor, etc)
-  @Column({ name: 'user_id', type: 'uuid' })
-  userId: string;
+  // FK al tecnico
+  @Column({ name: 'technician_id', type: 'uuid' })
+  technicianId: string;
 
   // FK a máquina
   @Column({ name: 'machine_id', type: 'uuid' })
   machineId: string;
 
-  // Timestamp de check-in
-  @Column({ name: 'check_in_timestamp', type: 'timestamp', nullable: true })
-  checkInTimestamp: Date;
-
-  // Timestamp de check-out
-  @Column({ name: 'check_out_timestamp', type: 'timestamp', nullable: true })
-  checkOutTimestamp: Date;
-
-  // UID del NFC en check-in
-  @Column({ name: 'check_in_nfc_uid', type: 'varchar', length: 255, nullable: true })
-  checkInNfcUid: string;
-
-  // UID del NFC en check-out
-  @Column({ name: 'check_out_nfc_uid', type: 'varchar', length: 255, nullable: true })
-  checkOutNfcUid: string;
-
-  // GPS Latitud en check-in
+  // Coordenadas registradas en la visita
   @Column({
-    name: 'check_in_gps_lat',
+    name: 'latitude',
     type: 'decimal',
     precision: 10,
     scale: 8,
     nullable: true,
   })
-  checkInGpsLat: number;
+  latitude: number | null;
 
-  // GPS Longitud en check-in
   @Column({
-    name: 'check_in_gps_lng',
+    name: 'longitude',
     type: 'decimal',
     precision: 11,
     scale: 8,
     nullable: true,
   })
-  checkInGpsLng: number;
+  longitude: number | null;
 
-  // GPS Latitud en check-out
-  @Column({
-    name: 'check_out_gps_lat',
-    type: 'decimal',
-    precision: 10,
-    scale: 8,
-    nullable: true,
-  })
-  checkOutGpsLat: number;
+  // FK al tag NFC
+  @Column({ name: 'nfc_tag_id', type: 'uuid', nullable: true })
+  nfcTagId: string | null;
 
-  // GPS Longitud en check-out
-  @Column({
-    name: 'check_out_gps_lng',
-    type: 'decimal',
-    precision: 11,
-    scale: 8,
-    nullable: true,
-  })
-  checkOutGpsLng: number;
+  @Column({ name: 'temperature', type: 'decimal', precision: 5, scale: 2, nullable: true })
+  temperature: number | null;
+
+  @Column({ name: 'notes', type: 'text', nullable: true })
+  notes: string | null;
 
   // Estado de la visita
-  @Column({
-    name: 'status',
-    type: 'enum',
-    enum: VisitStatus,
-    default: VisitStatus.ABIERTA,
-  })
-  status: VisitStatus;
+  @Column({ name: 'status', type: 'varchar', length: 50, nullable: true })
+  status: string | null;
 
-  // Si la visita es válida
-  @Column({ name: 'is_valid', type: 'boolean', default: false })
-  isValid: boolean;
+  // Tipo de visita
+  @Column({ name: 'type', type: 'varchar', length: 50, nullable: true })
+  type: string | null;
 
-  // Notas de validación
-  @Column({ name: 'validation_notes', type: 'text', nullable: true })
-  validationNotes: string;
+  @Column({ name: 'visited_at', type: 'timestamp', nullable: true })
+  visitedAt: Date | null;
+
+  @Column({ name: 'tenant_name', type: 'varchar', length: 255, nullable: true })
+  tenantName: string | null;
 
   // Timestamps automáticos
   @CreateDateColumn({ name: 'created_at' })

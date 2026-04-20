@@ -78,7 +78,7 @@ export class SaleInventoryItem {
   notes: string | null = null;
 
   // Relaciones
-  @ManyToOne(() => Sale, (sale) => sale.inventoryItems, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Sale, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'sale_id' })
   sale!: Sale;
 

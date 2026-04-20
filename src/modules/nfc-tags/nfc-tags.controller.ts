@@ -45,7 +45,7 @@ export class NfcTagsController {
     examples: {
       ejemplo1: {
         summary: 'Tag NFC básico',
-        description: 'machine_serial_id, tenant_id_obfuscated e integrity_checksum se generan automáticamente',
+        description: 'machine_serial_id, tenant_name e integrity_checksum se generan automáticamente',
         value: {
           machineId: '595b8f06-5fc4-42f3-854a-2f1b8e1732d1',
           uid: 'NFC-68212T',
@@ -118,7 +118,7 @@ export class NfcTagsController {
           tagModel: 'NTAG-215',
           hardwareModel: 'NTAG215',
           machineSerialId: 'SN-RF-00001',
-          tenantIdObfuscated: 'ff89158e',
+          tenantName: 'SuperFrio Refrigeración',
           integrityChecksum: 'k57fbxtpm6tvrfg19a074a',
           isLocked: false,
           isActive: true,

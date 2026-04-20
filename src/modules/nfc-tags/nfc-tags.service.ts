@@ -9,6 +9,7 @@ import { Repository, FindOptionsWhere, IsNull } from 'typeorm';
 import * as crypto from 'crypto';
 import { NfcTag } from './entities/nfc-tag.entity';
 import { Machine } from '../machines/entities/machine.entity';
+import { Tenant } from '../tenants/entities/tenant.entity';
 import { CreateNfcTagDto } from './dto/create-nfc-tag.dto';
 import { UpdateNfcTagDto } from './dto/update-nfc-tag.dto';
 
@@ -19,6 +20,8 @@ export class NfcTagsService {
     private nfcTagsRepo: Repository<NfcTag>,
     @InjectRepository(Machine)
     private machineRepo: Repository<Machine>,
+    @InjectRepository(Tenant)
+    private tenantsRepo: Repository<Tenant>,
   ) {}
 
   /**
@@ -48,11 +51,13 @@ export class NfcTagsService {
       );
     }
 
-    // Generar tenant_id_obfuscated (primeros 8 caracteres del tenantId)
-    const tenantIdObfuscated = tenantId.substring(0, 8);
+    // Obtener nombre del tenant para persistirlo en tenant_name
+    const tenant = await this.tenantsRepo.findOne({
+      where: { id: tenantId, deletedAt: IsNull() },
+    });
 
-    // Generar integrity_checksum basado en uid + machineSerialId + tenantIdObfuscated
-    const checksumData = `${data.uid}:${machine.serialNumber}:${tenantIdObfuscated}`;
+    // Generar integrity_checksum basado en uid + machineSerialId + tenantName
+    const checksumData = `${data.uid}:${machine.serialNumber}:${tenant?.name ?? ''}`;
     const integrityChecksum = crypto
       .createHash('sha256')
       .update(checksumData)
@@ -63,7 +68,7 @@ export class NfcTagsService {
       ...data,
       tenantId,
       machineSerialId: machine.serialNumber, // Asignar automáticamente el serial_number de la máquina
-      tenantIdObfuscated, // Asignar automáticamente el tenant ofuscado
+      tenantName: tenant?.name,
       integrityChecksum, // Asignar automáticamente el checksum de integridad
     });
     return this.nfcTagsRepo.save(nfcTag);

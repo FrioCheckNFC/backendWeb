@@ -6,26 +6,14 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
   Index,
-  OneToMany,
-  JoinColumn,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-import { SaleInventoryItem } from './sale-inventory-item.entity';
-
-export enum DeliveryStatus {
-  PENDING = 'PENDING',
-  IN_TRANSIT = 'IN_TRANSIT',
-  DELIVERED = 'DELIVERED',
-  CANCELLED = 'CANCELLED',
-  RETURNED = 'RETURNED',
-}
 
 @Entity('sales')
 @Index(['tenantId', 'vendorId'])
 @Index(['tenantId', 'sectorId'])
-@Index(['tenantId', 'retailerId'])
+@Index(['tenantId', 'machineId'])
 @Index(['tenantId', 'saleDate'])
-@Index(['tenantId', 'deliveryStatus'])
 export class Sale {
   @ApiProperty({
     description: 'ID único de la venta',
@@ -58,11 +46,12 @@ export class Sale {
   sectorId: string | null;
 
   @ApiProperty({
-    description: 'ID del minorista/cliente a quien se le vende (user con role RETAILER)',
+    description: 'ID de la maquina asociada a la venta',
     example: '880e8400-e29b-41d4-a716-446655440004',
+    nullable: true,
   })
-  @Column({ name: 'retailer_id', type: 'uuid' })
-  retailerId!: string;
+  @Column({ name: 'machine_id', type: 'uuid', nullable: true })
+  machineId: string | null;
 
   @ApiProperty({
     description: 'Monto total de la venta (suma de todos los items)',
@@ -80,19 +69,6 @@ export class Sale {
   description: string | null;
 
   @ApiProperty({
-    description: 'Estado de la entrega del pedido',
-    enum: DeliveryStatus,
-    example: 'PENDING',
-  })
-  @Column({
-    name: 'delivery_status',
-    type: 'enum',
-    enum: DeliveryStatus,
-    default: DeliveryStatus.PENDING,
-  })
-  deliveryStatus!: DeliveryStatus;
-
-  @ApiProperty({
     description: 'Fecha y hora en que se realizó la venta',
     example: '2026-04-08T15:30:00Z',
   })
@@ -100,16 +76,12 @@ export class Sale {
   saleDate!: Date;
 
   @ApiProperty({
-    description: 'Fecha y hora en que se entregó el pedido',
-    example: '2026-04-09T10:00:00Z',
+    description: 'Nombre del tenant',
+    example: 'SuperFrio Refrigeracion',
     nullable: true,
   })
-  @Column({ name: 'delivery_date', type: 'timestamp', nullable: true })
-  deliveryDate: Date | null;
-
-  // Relación: items de venta vinculados a inventario
-  @OneToMany(() => SaleInventoryItem, (item) => item.sale, { cascade: true, eager: false })
-  inventoryItems?: SaleInventoryItem[];
+  @Column({ name: 'tenant_name', type: 'varchar', length: 255, nullable: true })
+  tenantName: string | null;
 
   // Timestamps
   @CreateDateColumn({ name: 'created_at' })

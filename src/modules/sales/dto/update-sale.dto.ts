@@ -5,13 +5,9 @@ import {
   IsString,
   MaxLength,
   IsISO8601,
-  IsEnum,
-  IsArray,
-  ValidateNested,
+  IsNumber,
+  Min,
 } from 'class-validator';
-import { Type } from 'class-transformer';
-import { DeliveryStatus } from '../entities/sale.entity';
-import { CreateSaleInventoryItemDto } from './create-sale.dto';
 
 export class UpdateSaleDto {
   @ApiProperty({
@@ -34,12 +30,22 @@ export class UpdateSaleDto {
 
   @ApiProperty({
     example: '880e8400-e29b-41d4-a716-446655440004',
-    description: 'UUID del minorista',
+    description: 'UUID de la maquina asociada',
     required: false,
   })
   @IsOptional()
   @IsUUID()
-  retailerId?: string;
+  machineId?: string;
+
+  @ApiProperty({
+    example: 18000,
+    description: 'Monto total de la venta',
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  amount?: number;
 
   @ApiProperty({
     example: 'Descripción actualizada',
@@ -52,16 +58,6 @@ export class UpdateSaleDto {
   description?: string;
 
   @ApiProperty({
-    enum: DeliveryStatus,
-    example: 'DELIVERED',
-    description: 'Estado de la entrega',
-    required: false,
-  })
-  @IsOptional()
-  @IsEnum(DeliveryStatus)
-  deliveryStatus?: DeliveryStatus;
-
-  @ApiProperty({
     example: '2026-04-08T16:45:00Z',
     description: 'Fecha y hora actualizada de la venta',
     required: false,
@@ -69,24 +65,4 @@ export class UpdateSaleDto {
   @IsOptional()
   @IsISO8601()
   saleDate?: string;
-
-  @ApiProperty({
-    example: '2026-04-09T11:30:00Z',
-    description: 'Fecha y hora de entrega',
-    required: false,
-  })
-  @IsOptional()
-  @IsISO8601()
-  deliveryDate?: string;
-
-  @ApiProperty({
-    type: [CreateSaleInventoryItemDto],
-    description: 'Items de inventario (reemplaza los existentes si se proporciona)',
-    required: false,
-  })
-  @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => CreateSaleInventoryItemDto)
-  inventoryItems?: CreateSaleInventoryItemDto[];
 }

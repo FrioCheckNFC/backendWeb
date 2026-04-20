@@ -1,21 +1,18 @@
-import { VisitStatus } from '../entities/visit.entity';
-
 export class VisitResponseDto {
   id: string;
   tenantId: string;
-  userId: string;
+  technicianId: string;
   machineId: string;
-  status: VisitStatus;
-  checkInTimestamp: Date;
-  checkOutTimestamp?: Date;
-  checkInGpsLat?: number;
-  checkInGpsLng?: number;
-  checkOutGpsLat?: number;
-  checkOutGpsLng?: number;
-  checkInNfcUid?: string;
-  checkOutNfcUid?: string;
-  isValid: boolean;
-  validationNotes?: string;
+  latitude: number | null;
+  longitude: number | null;
+  nfcTagId: string | null;
+  temperature: number | null;
+  notes: string | null;
+  status: string | null;
+  type: string | null;
+  visitedAt: Date | null;
+  tenantName: string | null;
   createdAt: Date;
   updatedAt: Date;
+  deletedAt: Date | null;
 }

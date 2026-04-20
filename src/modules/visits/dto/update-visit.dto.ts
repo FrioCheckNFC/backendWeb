@@ -1,28 +1,20 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
-  IsNotEmpty,
-  IsUUID,
   IsOptional,
+  IsUUID,
   IsNumber,
-  IsDateString,
   IsString,
   MaxLength,
   Min,
   Max,
+  IsDateString,
 } from 'class-validator';
 
-export class CreateVisitDto {
-  @ApiProperty({
-    example: '550e8400-e29b-41d4-a716-446655440000',
-    description: 'ID del tenant (se obtiene del usuario autenticado)',
-  })
-  @IsOptional()
-  @IsUUID()
-  tenantId?: string;
-
+export class UpdateVisitDto {
   @ApiProperty({
     example: '550e8400-e29b-41d4-a716-446655440002',
-    description: 'ID del tecnico (se obtiene del usuario autenticado)',
+    description: 'ID del tecnico',
+    required: false,
   })
   @IsOptional()
   @IsUUID()
@@ -30,11 +22,12 @@ export class CreateVisitDto {
 
   @ApiProperty({
     example: '550e8400-e29b-41d4-a716-446655440001',
-    description: 'ID de la máquina a visitar',
+    description: 'ID de la maquina',
+    required: false,
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsUUID()
-  machineId!: string;
+  machineId?: string;
 
   @ApiProperty({
     example: -33.4489,
@@ -77,8 +70,8 @@ export class CreateVisitDto {
   temperature?: number;
 
   @ApiProperty({
-    example: 'Revision de maquina de hielo en zona norte',
-    description: 'Notas sobre la visita',
+    example: 'Visita completada sin incidentes',
+    description: 'Notas de la visita',
     required: false,
   })
   @IsOptional()
@@ -87,7 +80,7 @@ export class CreateVisitDto {
   notes?: string;
 
   @ApiProperty({
-    example: 'ABIERTA',
+    example: 'CERRADA',
     description: 'Estado de la visita',
     required: false,
   })
@@ -115,4 +108,3 @@ export class CreateVisitDto {
   @IsDateString()
   visitedAt?: string;
 }
-

@@ -47,11 +47,11 @@ export class NfcTagResponseDto {
   machineSerialId: string | null;
 
   @ApiProperty({
-    description: 'Tenant ID ofuscado para seguridad',
-    example: 'ff89158e',
+    description: 'Nombre del tenant',
+    example: 'SuperFrio Refrigeracion',
     nullable: true,
   })
-  tenantIdObfuscated: string | null;
+  tenantName: string | null;
 
   @ApiProperty({
     description: 'Checksum de integridad del tag',

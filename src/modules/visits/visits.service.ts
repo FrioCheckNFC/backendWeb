@@ -1,12 +1,13 @@
 import {
   Injectable,
   NotFoundException,
-  ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, IsNull } from 'typeorm';
+import { Repository, IsNull, FindOptionsWhere } from 'typeorm';
 import { Visit, VisitStatus } from './entities/visit.entity';
 import { Machine } from '../machines/entities/machine.entity';
+import { Tenant } from '../tenants/entities/tenant.entity';
+import { CreateVisitDto, UpdateVisitDto } from './dto';
 
 @Injectable()
 export class VisitsService {
@@ -16,24 +17,26 @@ export class VisitsService {
 
     @InjectRepository(Machine)
     private machinesRepo: Repository<Machine>,
+
+    @InjectRepository(Tenant)
+    private tenantsRepo: Repository<Tenant>,
   ) {}
 
   /**
-   * Crear una nueva visita (check-in)
+   * Crear una nueva visita
    */
-  async create(data: Partial<Visit>): Promise<Visit> {
-    // Validar campos requeridos
-    if (!data.tenantId || !data.userId || !data.machineId) {
-      throw new Error(
-        `Campos requeridos faltantes: tenantId=${data.tenantId}, userId=${data.userId}, machineId=${data.machineId}`,
-      );
-    }
+  async create(
+    tenantId: string,
+    technicianId: string,
+    data: CreateVisitDto,
+  ): Promise<Visit> {
+    const finalTechnicianId = data.technicianId ?? technicianId;
 
-    // Validar que la máquina existe
+    // Validar máquina en el tenant
     const machine = await this.machinesRepo.findOne({
       where: {
         id: data.machineId,
-        tenantId: data.tenantId,
+        tenantId,
         deletedAt: IsNull(),
       },
     });
@@ -44,48 +47,27 @@ export class VisitsService {
       );
     }
 
-    // Convertir fechas si es necesario
-    if (data.checkInTimestamp && typeof data.checkInTimestamp === 'string') {
-      data.checkInTimestamp = new Date(data.checkInTimestamp);
-    }
-    if (!data.checkInTimestamp) {
-      data.checkInTimestamp = new Date();
-    }
+    const tenant = await this.tenantsRepo.findOne({
+      where: { id: tenantId, deletedAt: IsNull() },
+    });
 
-    // Asegurar defaults
-    if (!data.status) {
-      data.status = VisitStatus.ABIERTA;
-    }
+    const visitedAt = data.visitedAt ? new Date(data.visitedAt) : new Date();
 
-    const visit = this.visitsRepo.create(data);
-    return this.visitsRepo.save(visit);
-  }
+    const visit = this.visitsRepo.create({
+      tenantId,
+      technicianId: finalTechnicianId,
+      machineId: data.machineId,
+      latitude: data.latitude ?? null,
+      longitude: data.longitude ?? null,
+      nfcTagId: data.nfcTagId ?? null,
+      temperature: data.temperature ?? null,
+      notes: data.notes ?? null,
+      status: data.status ?? VisitStatus.ABIERTA,
+      type: data.type ?? null,
+      visitedAt,
+      tenantName: tenant?.name ?? null,
+    });
 
-  /**
-   * Realizar check-out de una visita
-   */
-  async checkout(id: string, tenantId: string, checkoutData: Partial<Visit>): Promise<Visit> {
-    const visit = await this.findOne(id, tenantId);
-
-    if (visit.checkOutTimestamp) {
-      throw new ConflictException('Esta visita ya ha sido checkout');
-    }
-
-    // Usar la fecha actual si no se proporciona
-    if (!checkoutData.checkOutTimestamp) {
-      checkoutData.checkOutTimestamp = new Date();
-    }
-
-    // Validar que checkout sea posterior a checkin
-    if (checkoutData.checkOutTimestamp < visit.checkInTimestamp) {
-      throw new ConflictException(
-        'La hora de checkout no puede ser anterior a check-in',
-      );
-    }
-
-    checkoutData.status = VisitStatus.CERRADA;
-
-    Object.assign(visit, checkoutData);
     return this.visitsRepo.save(visit);
   }
 
@@ -94,16 +76,17 @@ export class VisitsService {
    */
   async findAll(
     tenantId: string,
-    userId?: string,
+    technicianId?: string,
     machineId?: string,
-    status?: VisitStatus,
+    status?: string,
+    type?: string,
     skip = 0,
     take = 20,
   ): Promise<{ visits: Visit[]; total: number }> {
-    const where: any = { tenantId, deletedAt: null };
+    const where: FindOptionsWhere<Visit> = { tenantId, deletedAt: IsNull() };
 
-    if (userId) {
-      where.userId = userId;
+    if (technicianId) {
+      where.technicianId = technicianId;
     }
 
     if (machineId) {
@@ -114,11 +97,15 @@ export class VisitsService {
       where.status = status;
     }
 
+    if (type) {
+      where.type = type;
+    }
+
     const [visits, total] = await this.visitsRepo.findAndCount({
       where,
       skip,
       take,
-      order: { checkInTimestamp: 'DESC' },
+      order: { visitedAt: 'DESC' },
     });
 
     return { visits, total };
@@ -142,55 +129,32 @@ export class VisitsService {
   /**
    * Actualizar una visita
    */
-  async update(id: string, tenantId: string, data: Partial<Visit>): Promise<Visit> {
+  async update(id: string, tenantId: string, data: UpdateVisitDto): Promise<Visit> {
     const visit = await this.findOne(id, tenantId);
-    Object.assign(visit, data);
-    return this.visitsRepo.save(visit);
-  }
 
-  /**
-   * Obtener visitas de un usuario en un rango de fechas
-   */
-  async findByUserDateRange(
-    tenantId: string,
-    userId: string,
-    startDate: Date,
-    endDate: Date,
-  ): Promise<Visit[]> {
-    return this.visitsRepo.find({
-      where: {
-        tenantId,
-        userId,
-        checkInTimestamp: Between(startDate, endDate),
-        deletedAt: IsNull(),
-      },
-      order: { checkInTimestamp: 'DESC' },
-    });
-  }
+    if (data.machineId) {
+      const machine = await this.machinesRepo.findOne({
+        where: {
+          id: data.machineId,
+          tenantId,
+          deletedAt: IsNull(),
+        },
+      });
 
-  /**
-   * Obtener visitas activas (ABIERTA sin CERRADA)
-   */
-  async findActiveVisits(tenantId: string): Promise<Visit[]> {
-    return this.visitsRepo.find({
-      where: {
-        tenantId,
-        status: VisitStatus.ABIERTA,
-        deletedAt: IsNull(),
-      },
-      order: { checkInTimestamp: 'DESC' },
-    });
-  }
-
-  /**
-   * Obtener duración de una visita en minutos
-   */
-  getVisitDurationMinutes(visit: Visit): number {
-    if (!visit.checkOutTimestamp) {
-      return 0;
+      if (!machine) {
+        throw new NotFoundException(
+          `Máquina con ID ${data.machineId} no encontrada para este tenant`,
+        );
+      }
     }
-    const durationMs = visit.checkOutTimestamp.getTime() - visit.checkInTimestamp.getTime();
-    return Math.floor(durationMs / 60000); // Convertir a minutos
+
+    const updateData: Partial<Visit> = {
+      ...data,
+      visitedAt: data.visitedAt ? new Date(data.visitedAt) : undefined,
+    };
+
+    Object.assign(visit, updateData);
+    return this.visitsRepo.save(visit);
   }
 
   /**

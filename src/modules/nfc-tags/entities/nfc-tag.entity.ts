@@ -66,12 +66,12 @@ export class NfcTag {
   machineSerialId: string;
 
   @ApiProperty({
-    description: 'Tenant ID ofuscado para seguridad',
-    example: 'TEN-OBFXYZ123',
+    description: 'Nombre del tenant',
+    example: 'SuperFrio Refrigeracion',
     nullable: true,
   })
-  @Column({ name: 'tenant_id_obfuscated', type: 'varchar', length: 255, nullable: true })
-  tenantIdObfuscated: string;
+  @Column({ name: 'tenant_name', type: 'varchar', length: 255, nullable: true })
+  tenantName: string | null;
 
   @ApiProperty({
     description: 'Checksum de integridad del tag',

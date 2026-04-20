@@ -1,3 +1,3 @@
 export { CreateVisitDto } from './create-visit.dto';
-export { CheckOutVisitDto } from './checkout-visit.dto';
+export { UpdateVisitDto } from './update-visit.dto';
 export { VisitResponseDto } from './visit-response.dto';
