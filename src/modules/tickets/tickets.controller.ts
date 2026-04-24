@@ -23,7 +23,7 @@ import { TicketsService } from './tickets.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { Ticket, TicketStatus, TicketPriority } from './entities/ticket.entity';
-import { CreateTicketDto, TicketResponseDto } from './dto';
+import { CreateTicketDto, UpdateTicketDto, TicketResponseDto } from './dto';
 
 @ApiTags('Tickets')
 @ApiBearerAuth()
@@ -173,6 +173,43 @@ export class TicketsController {
     required: true,
     description: 'ID del ticket a actualizar',
   })
+  @ApiBody({
+    type: UpdateTicketDto,
+    description: 'Campos a actualizar del ticket. Todos los campos son opcionales.',
+    examples: {
+      actualizar_titulo: {
+        summary: 'Actualizar título',
+        value: {
+          title: 'Nuevo título del ticket',
+        },
+      },
+      actualizar_prioridad: {
+        summary: 'Actualizar prioridad',
+        value: {
+          priority: 'critical',
+        },
+      },
+      actualizar_descripcion: {
+        summary: 'Actualizar descripción',
+        value: {
+          description: 'Nueva descripción del problema',
+        },
+      },
+      cambiar_estado: {
+        summary: 'Cambiar estado',
+        value: {
+          status: 'in_progress',
+        },
+      },
+      resolver_ticket: {
+        summary: 'Resolver ticket',
+        value: {
+          status: 'resolved',
+          resolutionNotes: 'Se reemplazó el componente defectuoso. Máquina funcionando normalmente.',
+        },
+      },
+    },
+  })
   @ApiResponse({
     status: 200,
     description: 'Ticket actualizado exitosamente',
@@ -181,7 +218,7 @@ export class TicketsController {
   async update(
     @Param('id') id: string,
     @GetUser('tenantId') tenantId: string,
-    @Body() data: Partial<Ticket>,
+    @Body() data: UpdateTicketDto,
   ): Promise<TicketResponseDto> {
     return this.ticketsService.update(id, tenantId, data);
   }

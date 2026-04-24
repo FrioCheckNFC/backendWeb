@@ -198,7 +198,36 @@ export class NfcTagsController {
   @Patch(':id')
   @Roles('ADMIN', 'SUPPORT')
   @ApiOperation({ summary: 'Actualizar tag NFC' })
-  @ApiBody({ type: UpdateNfcTagDto })
+  @ApiBody({
+    type: UpdateNfcTagDto,
+    examples: {
+      actualizar_maquina: {
+        summary: 'Cambiar máquina asociada',
+        value: {
+          machineId: '123e4567-e89b-12d3-a456-426614174000',
+        },
+      },
+      cambiar_tenant: {
+        summary: 'Cambiar a otra empresa',
+        value: {
+          tenantId: '550e8400-e29b-41d4-a716-446655440000',
+        },
+      },
+      actualizar_uid: {
+        summary: 'Actualizar UID',
+        value: {
+          uid: 'NFC-NEW-123456789',
+        },
+      },
+      actualizar_modelo: {
+        summary: 'Actualizar modelo y estado',
+        value: {
+          tagModel: 'MIFARE Ultralight',
+          isActive: false,
+        },
+      },
+    },
+  })
   @ApiResponse({
     status: 200,
     description: 'Tag NFC actualizado',
@@ -207,6 +236,10 @@ export class NfcTagsController {
   @ApiResponse({
     status: 404,
     description: 'Tag NFC no encontrado',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Conflicto: UID duplicado en el tenant',
   })
   async update(
     @Param('id') id: string,

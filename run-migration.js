@@ -3,11 +3,11 @@ const fs = require('fs');
 const path = require('path');
 
 const client = new Client({
-  host: 'friocheck-db-server.postgres.database.azure.com',
+  host: 'friocheckdb.postgres.database.azure.com',
   port: 5432,
   user: 'friocheck_admin',
   password: 'Fr1o-Ch3ck',
-  database: 'friocheck_db',
+  database: 'friocheckdb',
   ssl: { rejectUnauthorized: false }
 });
 

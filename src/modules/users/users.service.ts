@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ILike, Repository } from 'typeorm';
+import { ILike, Repository, IsNull } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User, UserRole } from './entities/user.entity';
+import { Tenant } from '../tenants/entities/tenant.entity';
 import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto';
 
 @Injectable()
@@ -10,6 +11,9 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private usersRepo: Repository<User>,
+
+    @InjectRepository(Tenant)
+    private tenantsRepo: Repository<Tenant>,
   ) {}
 
   /**
@@ -17,13 +21,50 @@ export class UsersService {
    * @param createUserDto DTO con datos del usuario
    * @returns Usuario creado (sin passwordHash)
    */
-  async create(createUserDto: CreateUserDto): Promise<UserResponseDto> {
+  async create(createUserDto: CreateUserDto, userRole?: UserRole, userTenantId?: string): Promise<UserResponseDto> {
     const { email, password, firstName, lastName, role, tenantId, phone } = createUserDto;
 
     // Validar que el email no exista
     const existingUser = await this.usersRepo.findOne({ where: { email } });
     if (existingUser) {
       throw new ConflictException(`El email ${email} ya está registrado`);
+    }
+
+    // Validar que el teléfono no exista (si se proporciona)
+    if (phone) {
+      const existingPhone = await this.usersRepo.findOne({ where: { phone } });
+      if (existingPhone) {
+        throw new ConflictException(`El teléfono ${phone} ya está registrado en otro usuario`);
+      }
+    }
+
+    // Determinar el tenantId a asignar
+    let finalTenantId: string;
+
+    if (userRole === UserRole.SUPER_ADMIN) {
+      // SUPER_ADMIN puede elegir cualquier tenant
+      if (!tenantId) {
+        throw new BadRequestException('El tenantId es requerido para SUPER_ADMIN');
+      }
+      finalTenantId = tenantId;
+    } else {
+      // ADMIN y SUPPORT deben ser asignados a su propio tenant
+      if (!userTenantId) {
+        throw new BadRequestException('No se puede asignar un tenant válido al usuario');
+      }
+      if (tenantId && tenantId !== userTenantId) {
+        throw new ConflictException('No puedes asignar un usuario a otro tenant que no sea el tuyo');
+      }
+      finalTenantId = userTenantId;
+    }
+
+    // Validar que el tenant exista
+    const tenant = await this.tenantsRepo.findOne({
+      where: { id: finalTenantId, deletedAt: IsNull() },
+    });
+
+    if (!tenant) {
+      throw new NotFoundException('El tenant no se encuentra registrado');
     }
 
     // Hash de la contraseña con bcrypt (10 rounds)
@@ -36,7 +77,7 @@ export class UsersService {
       firstName,
       lastName,
       role: [role as UserRole],
-      tenantId,
+      tenantId: finalTenantId,
       phone,
       active: true,
     });
@@ -104,8 +145,9 @@ export class UsersService {
    * Actualizar usuario (parcial)
    * @param id UUID del usuario
    * @param updateUserDto DTO con campos a actualizar
+   * @param userRole Rol del usuario que realiza la actualización
    */
-  async update(id: string, updateUserDto: UpdateUserDto): Promise<UserResponseDto> {
+  async update(id: string, updateUserDto: UpdateUserDto, userRole?: UserRole): Promise<UserResponseDto> {
     const user = await this.usersRepo.findOne({ where: { id } });
 
     if (!user) {
@@ -123,11 +165,41 @@ export class UsersService {
       user.email = updateUserDto.email;
     }
 
+    // Validar teléfono si se intenta cambiar
+    if (updateUserDto.phone !== undefined && updateUserDto.phone !== user.phone) {
+      if (updateUserDto.phone) {
+        const existingPhone = await this.usersRepo.findOne({
+          where: { phone: updateUserDto.phone },
+        });
+        if (existingPhone) {
+          throw new ConflictException(`El teléfono ${updateUserDto.phone} ya está registrado en otro usuario`);
+        }
+      }
+      user.phone = updateUserDto.phone;
+    }
+
+    // Validar tenant - solo SUPER_ADMIN puede cambiar
+    if (updateUserDto.tenantId && updateUserDto.tenantId !== user.tenantId) {
+      if (userRole !== UserRole.SUPER_ADMIN) {
+        throw new ConflictException('Solo SUPER_ADMIN puede cambiar el tenant de un usuario');
+      }
+
+      // Validar que el nuevo tenant exista
+      const newTenant = await this.tenantsRepo.findOne({
+        where: { id: updateUserDto.tenantId, deletedAt: IsNull() },
+      });
+
+      if (!newTenant) {
+        throw new NotFoundException('El tenant no se encuentra registrado');
+      }
+
+      user.tenantId = updateUserDto.tenantId;
+    }
+
     // Actualizar campos opcionales
     if (updateUserDto.firstName) user.firstName = updateUserDto.firstName;
     if (updateUserDto.lastName) user.lastName = updateUserDto.lastName;
     if (updateUserDto.role) user.role = [updateUserDto.role];
-    if (updateUserDto.phone !== undefined) user.phone = updateUserDto.phone;
     if (updateUserDto.active !== undefined) user.active = updateUserDto.active;
 
     const updatedUser = await this.usersRepo.save(user);

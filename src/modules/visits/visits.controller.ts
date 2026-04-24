@@ -3,6 +3,9 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
+  HttpCode,
+  HttpStatus,
   Param,
   Body,
   Query,
@@ -84,5 +87,16 @@ export class VisitsController {
     @Body() data: UpdateVisitDto,
   ): Promise<Visit> {
     return this.visitsService.update(id, user.tenantId, data);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Eliminar una visita (Automático - obtiene tenantId del usuario)' })
+  async delete(
+    @Param('id') id: string,
+    @GetUser() user: User,
+  ): Promise<{ message: string }> {
+    await this.visitsService.delete(id, user.tenantId);
+    return { message: `Visita ${id} eliminada` };
   }
 }

@@ -1,14 +1,17 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { Inventory, InventoryStatus } from './entities/inventory.entity';
 import { CreateInventoryDto, UpdateInventoryDto, InventoryResponseDto } from './dto';
+import { Tenant } from '../tenants/entities/tenant.entity';
 
 @Injectable()
 export class InventoryService {
   constructor(
     @InjectRepository(Inventory)
     private readonly inventoryRepo: Repository<Inventory>,
+    @InjectRepository(Tenant)
+    private readonly tenantsRepo: Repository<Tenant>,
   ) {}
 
   /**
@@ -20,7 +23,11 @@ export class InventoryService {
   ): Promise<InventoryResponseDto> {
     // Validar que no exista con el mismo part_number
     const existing = await this.inventoryRepo.findOne({
-      where: { tenantId, partNumber: createInventoryDto.partNumber },
+      where: {
+        tenantId,
+        partNumber: createInventoryDto.partNumber,
+        deletedAt: IsNull(),
+      },
     });
 
     if (existing) {
@@ -29,23 +36,32 @@ export class InventoryService {
       );
     }
 
+    const tenant = await this.tenantsRepo.findOne({
+      where: { id: tenantId, deletedAt: IsNull() },
+    });
+
     const inventory = this.inventoryRepo.create();
     inventory.tenantId = tenantId;
     inventory.partName = createInventoryDto.partName;
     inventory.partNumber = createInventoryDto.partNumber;
-    inventory.description = createInventoryDto.description || '';
-    inventory.quantity = createInventoryDto.quantity || 0;
-    inventory.minQuantity = createInventoryDto.minQuantity || 5;
+    inventory.description = createInventoryDto.description ?? null;
+    inventory.quantity = createInventoryDto.quantity ?? 0;
+    inventory.minQuantity = createInventoryDto.minQuantity ?? 5;
     inventory.unitCost = createInventoryDto.unitCost;
-    inventory.location = createInventoryDto.location || '';
+    inventory.location = createInventoryDto.location ?? null;
+    inventory.tenantName = tenant?.name ?? null;
 
-    // Determinar status basado en cantidad
-    if (inventory.quantity === 0) {
-      inventory.status = InventoryStatus.AGOTADO;
-    } else if (inventory.quantity <= inventory.minQuantity) {
-      inventory.status = InventoryStatus.EN_USO;
+    if (createInventoryDto.status) {
+      inventory.status = createInventoryDto.status;
     } else {
-      inventory.status = InventoryStatus.DISPONIBLE;
+      // Determinar status basado en cantidad
+      if (inventory.quantity === 0) {
+        inventory.status = InventoryStatus.AGOTADO;
+      } else if (inventory.quantity <= inventory.minQuantity) {
+        inventory.status = InventoryStatus.EN_USO;
+      } else {
+        inventory.status = InventoryStatus.DISPONIBLE;
+      }
     }
 
     const saved = await this.inventoryRepo.save(inventory);
@@ -61,7 +77,7 @@ export class InventoryService {
   ): Promise<{ inventory: InventoryResponseDto[]; total: number }> {
     const query = this.inventoryRepo.createQueryBuilder('inv');
 
-    query.where('inv.tenantId = :tenantId AND inv.deletedAt IS NULL', {
+    query.where('inv.tenant_id = :tenantId AND inv.deleted_at IS NULL', {
       tenantId,
     });
 
@@ -71,12 +87,12 @@ export class InventoryService {
 
     if (filters?.search) {
       query.andWhere(
-        '(inv.partName ILIKE :search OR inv.partNumber ILIKE :search)',
+        '(inv.part_name ILIKE :search OR inv.part_number ILIKE :search)',
         { search: `%${filters.search}%` },
       );
     }
 
-    query.orderBy('inv.partName', 'ASC');
+    query.orderBy('inv.part_name', 'ASC');
 
     const [inventory, total] = await query.getManyAndCount();
 
@@ -91,7 +107,7 @@ export class InventoryService {
    */
   async findOne(id: string, tenantId: string): Promise<InventoryResponseDto> {
     const inventory = await this.inventoryRepo.findOne({
-      where: { id, tenantId },
+      where: { id, tenantId, deletedAt: IsNull() },
     });
 
     if (!inventory) {
@@ -123,7 +139,11 @@ export class InventoryService {
       updateInventoryDto.partNumber !== inventory.partNumber
     ) {
       const existing = await this.inventoryRepo.findOne({
-        where: { tenantId, partNumber: updateInventoryDto.partNumber },
+        where: {
+          tenantId,
+          partNumber: updateInventoryDto.partNumber,
+          deletedAt: IsNull(),
+        },
       });
       if (existing) {
         throw new BadRequestException(
@@ -146,11 +166,16 @@ export class InventoryService {
       inventory.unitCost = updateInventoryDto.unitCost;
     if (updateInventoryDto.location !== undefined)
       inventory.location = updateInventoryDto.location;
+    if (updateInventoryDto.status !== undefined)
+      inventory.status = updateInventoryDto.status;
 
     // Actualizar status basado en cantidad
     if (
-      updateInventoryDto.quantity !== undefined ||
-      updateInventoryDto.minQuantity !== undefined
+      updateInventoryDto.status === undefined &&
+      (
+        updateInventoryDto.quantity !== undefined ||
+        updateInventoryDto.minQuantity !== undefined
+      )
     ) {
       if (inventory.quantity === 0) {
         inventory.status = InventoryStatus.AGOTADO;
@@ -170,7 +195,7 @@ export class InventoryService {
    */
   async delete(id: string, tenantId: string): Promise<{ message: string }> {
     const inventory = await this.inventoryRepo.findOne({
-      where: { id, tenantId },
+      where: { id, tenantId, deletedAt: IsNull() },
     });
 
     if (!inventory) {
@@ -196,8 +221,10 @@ export class InventoryService {
     response.unitCost = Number(inventory.unitCost);
     response.status = inventory.status;
     response.location = inventory.location;
+    response.tenantName = inventory.tenantName;
     response.createdAt = inventory.createdAt;
     response.updatedAt = inventory.updatedAt;
+    response.deletedAt = inventory.deletedAt;
     return response;
   }
 }

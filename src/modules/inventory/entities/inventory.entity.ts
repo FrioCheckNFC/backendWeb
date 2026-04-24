@@ -36,7 +36,7 @@ export class Inventory {
 
   // Descripción
   @Column({ type: 'text', nullable: true })
-  description: string;
+  description: string | null;
 
   // Cantidad en stock
   @Column({ type: 'int', default: 0 })
@@ -60,7 +60,11 @@ export class Inventory {
 
   // Ubicación física
   @Column({ type: 'varchar', length: 255, nullable: true })
-  location: string;
+  location: string | null;
+
+  // Nombre del tenant denormalizado
+  @Column({ name: 'tenant_name', type: 'varchar', length: 255, nullable: true })
+  tenantName: string | null;
 
   // Timestamps automáticos
   @CreateDateColumn({ name: 'created_at' })
@@ -71,5 +75,5 @@ export class Inventory {
 
   // Soft delete
   @DeleteDateColumn({ name: 'deleted_at' })
-  deletedAt: Date;
+  deletedAt: Date | null;
 }

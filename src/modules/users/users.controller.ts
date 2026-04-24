@@ -5,7 +5,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { GetUser } from '../auth/decorators/get-user.decorator';
-import { User } from './entities/user.entity';
+import { User, UserRole } from './entities/user.entity';
 import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto';
 
 @ApiTags('Users')
@@ -20,41 +20,47 @@ export class UsersController {
    * POST /users
    */
   @Post()
-  @Roles('ADMIN')
+  @Roles('ADMIN', 'SUPER_ADMIN')
   @ApiOperation({ summary: 'Crear un nuevo usuario' })
   @ApiResponse({ 
     status: 201, 
     description: 'Usuario creado exitosamente',
     type: UserResponseDto 
   })
-  @ApiResponse({ status: 400, description: 'Datos inválidos' })
-  @ApiResponse({ status: 409, description: 'El email ya está registrado' })
+  @ApiResponse({ status: 400, description: 'Datos inválidos o tenant no encontrado' })
+  @ApiResponse({ status: 409, description: 'El email o teléfono ya está registrado' })
   @ApiResponse({ status: 401, description: 'No autorizado' })
   async create(
     @Body() createUserDto: CreateUserDto,
     @GetUser() user: User,
   ): Promise<UserResponseDto> {
-    if (!createUserDto.tenantId) {
-      createUserDto.tenantId = user.tenantId;
-    }
-    return await this.usersService.create(createUserDto);
+    const userRole = user.role?.[0] as UserRole;
+    const userTenantId = user.tenantId;
+    
+    return await this.usersService.create(createUserDto, userRole, userTenantId);
   }
 
   /**
    * Obtener todos los usuarios
    * GET /users
+   * - SUPER_ADMIN: ve todos los usuarios de todos los tenants
+   * - ADMIN/SUPPORT: ven solo los usuarios de su tenant
    */
   @Get()
-  @Roles('ADMIN', 'SUPPORT')
-  @ApiOperation({ summary: 'Obtener todos los usuarios' })
+  @Roles('ADMIN', 'SUPPORT', 'SUPER_ADMIN')
+  @ApiOperation({ summary: 'Obtener todos los usuarios (filtrado por rol)' })
   @ApiResponse({ 
     status: 200, 
     description: 'Lista de usuarios',
     type: [UserResponseDto]
   })
   @ApiResponse({ status: 401, description: 'No autorizado' })
-  async findAll(): Promise<UserResponseDto[]> {
-    return await this.usersService.findAll();
+  async findAll(@GetUser() user: User): Promise<UserResponseDto[]> {
+    if (user.role.includes(UserRole.SUPER_ADMIN)) {
+      return await this.usersService.findAll();
+    } else {
+      return await this.usersService.findByTenant(user.tenantId);
+    }
   }
 
   /**
@@ -94,30 +100,11 @@ export class UsersController {
   }
 
   /**
-   * Obtener usuarios por tenant
-   * GET /users/tenant/:tenantId
-   */
-  @Get('tenant/:tenantId')
-  @Roles('ADMIN', 'SUPPORT')
-  @ApiOperation({ summary: 'Obtener usuarios del tenant autenticado' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Usuarios del tenant',
-    type: [UserResponseDto]
-  })
-  @ApiResponse({ status: 401, description: 'No autorizado' })
-  async findByTenant(
-    @GetUser() user: User,
-  ): Promise<UserResponseDto[]> {
-    return await this.usersService.findByTenant(user.tenantId);
-  }
-
-  /**
    * Actualizar un usuario (PATCH - actualización parcial)
    * PATCH /users/:id
    */
   @Patch(':id')
-  @Roles('ADMIN', 'VENDOR', 'TECHNICIAN', 'DRIVER', 'RETAILER')
+  @Roles('ADMIN', 'SUPPORT', 'VENDOR', 'TECHNICIAN', 'DRIVER', 'RETAILER', 'SUPER_ADMIN')
   @ApiOperation({ summary: 'Actualizar un usuario (parcial)' })
   @ApiResponse({ 
     status: 200, 
@@ -126,13 +113,15 @@ export class UsersController {
   })
   @ApiResponse({ status: 400, description: 'Datos inválidos' })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
-  @ApiResponse({ status: 409, description: 'El email ya está registrado' })
+  @ApiResponse({ status: 409, description: 'El email o teléfono ya está registrado' })
   @ApiResponse({ status: 401, description: 'No autorizado' })
   async update(
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
+    @GetUser() user: User,
   ): Promise<UserResponseDto> {
-    return await this.usersService.update(id, updateUserDto);
+    const userRole = user.role?.[0] as UserRole;
+    return await this.usersService.update(id, updateUserDto, userRole);
   }
 
   /**

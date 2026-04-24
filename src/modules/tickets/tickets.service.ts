@@ -9,7 +9,8 @@ import { Repository, IsNull } from 'typeorm';
 import { Ticket, TicketStatus, TicketPriority } from './entities/ticket.entity';
 import { User, UserRole } from '../users/entities/user.entity';
 import { Tenant } from '../tenants/entities/tenant.entity';
-import { CreateTicketDto } from './dto';
+import { Machine } from '../machines/entities/machine.entity';
+import { CreateTicketDto, UpdateTicketDto } from './dto';
 
 @Injectable()
 export class TicketsService {
@@ -22,6 +23,9 @@ export class TicketsService {
 
     @InjectRepository(Tenant)
     private tenantsRepo: Repository<Tenant>,
+
+    @InjectRepository(Machine)
+    private machinesRepo: Repository<Machine>,
   ) {}
 
   /**
@@ -39,6 +43,19 @@ export class TicketsService {
     const tenant = await this.tenantsRepo.findOne({
       where: { id: tenantId, deletedAt: IsNull() },
     });
+
+    if (!tenant) {
+      throw new NotFoundException('Tenant no encontrado');
+    }
+
+    // Validar que la máquina existe y pertenece al tenant
+    const machine = await this.machinesRepo.findOne({
+      where: { id: data.machineId, tenantId, deletedAt: IsNull() },
+    });
+
+    if (!machine) {
+      throw new NotFoundException('Máquina no encontrada o no pertenece al tenant');
+    }
 
     const ticket = this.ticketsRepo.create({
       tenantId,
@@ -112,7 +129,7 @@ export class TicketsService {
   /**
    * Actualizar un ticket
    */
-  async update(id: string, tenantId: string, data: Partial<Ticket>): Promise<any> {
+  async update(id: string, tenantId: string, data: UpdateTicketDto): Promise<any> {
     const ticket = await this.ticketsRepo.findOne({
       where: { id, tenantId, deletedAt: IsNull() },
     });

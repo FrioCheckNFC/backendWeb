@@ -21,6 +21,7 @@ export enum MachineStatus {
 @Index(['tenantId', 'status'])
 @Index(['tenantId', 'assignedUserId'])
 @Index(['tenantId', 'storeId'])
+@Index(['tenantId', 'sectorId'])
 @Index(['tenantId', 'serialNumber'], { unique: true })
 export class Machine {
   @ApiProperty({
@@ -52,6 +53,14 @@ export class Machine {
   })
   @Column({ name: 'store_id', type: 'uuid', nullable: true })
   storeId: string;
+
+  @ApiProperty({
+    description: 'ID del sector (región/comuna) donde está la máquina',
+    example: 'ac6fd307-feaf-4025-b148-77273aaf7902',
+    nullable: true,
+  })
+  @Column({ name: 'sector_id', type: 'uuid', nullable: true })
+  sectorId: string;
 
   @ApiProperty({
     description: 'Nombre de la tienda (resuelto desde store_id)',

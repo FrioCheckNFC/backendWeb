@@ -5,11 +5,13 @@ import { VisitsController } from './visits.controller';
 import { Visit } from './entities/visit.entity';
 import { Machine } from '../machines/entities/machine.entity';
 import { Tenant } from '../tenants/entities/tenant.entity';
+import { User } from '../users/entities/user.entity';
+import { NfcTag } from '../nfc-tags/entities/nfc-tag.entity';
 import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Visit, Machine, Tenant]),
+    TypeOrmModule.forFeature([Visit, Machine, Tenant, User, NfcTag]),
     AuthModule,
   ],
   providers: [VisitsService],

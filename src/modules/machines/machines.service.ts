@@ -2,11 +2,13 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindOptionsWhere, In, IsNull } from 'typeorm';
 import { Machine, MachineStatus } from './entities/machine.entity';
 import { Location } from '../locations/entities/location.entity';
+import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class MachinesService {
@@ -15,13 +17,25 @@ export class MachinesService {
     private machinesRepo: Repository<Machine>,
     @InjectRepository(Location)
     private locationsRepo: Repository<Location>,
+    @InjectRepository(User)
+    private usersRepo: Repository<User>,
   ) {}
 
   /**
    * Crear una nueva máquina
    */
   async create(data: Partial<Machine>): Promise<Machine> {
-    const { serialNumber, tenantId } = data;
+    const { serialNumber } = data;
+    const tenantId = data.tenantId;
+    const storeId = data.storeId;
+
+    if (!tenantId) {
+      throw new BadRequestException('El tenantId es requerido para crear la máquina');
+    }
+
+    if (!storeId) {
+      throw new BadRequestException('El storeId es requerido para crear la máquina');
+    }
 
     // Validar que serial + tenant sea único
     const existing = await this.machinesRepo.findOne({
@@ -33,7 +47,15 @@ export class MachinesService {
       );
     }
 
-    await this.validateStoreIfPresent(tenantId, data.storeId);
+    const store = await this.getStoreForTenant(tenantId, storeId);
+
+    if (!store.retailerId) {
+      throw new BadRequestException(
+        `La tienda con ID ${storeId} no tiene retailer_id asignado`,
+      );
+    }
+
+    data.assignedUserId = store.retailerId;
 
     const machine = this.machinesRepo.create(data);
     const saved = await this.machinesRepo.save(machine);
@@ -87,6 +109,7 @@ export class MachinesService {
   async update(id: string, tenantId: string, data: Partial<Machine>): Promise<Machine> {
     const machine = await this.findOne(id, tenantId);
     await this.validateStoreIfPresent(tenantId, data.storeId);
+    await this.validateAssignedUserIfPresent(tenantId, data.assignedUserId);
     Object.assign(machine, data);
     const updated = await this.machinesRepo.save(machine);
     return this.enrichMachineWithStoreName(updated);
@@ -164,6 +187,49 @@ export class MachinesService {
 
     if (!store) {
       throw new NotFoundException(`Tienda con ID ${storeId} no encontrada para este tenant`);
+    }
+  }
+
+  private async getStoreForTenant(tenantId: string, storeId: string): Promise<Location> {
+    if (!storeId) {
+      throw new BadRequestException('El storeId es requerido para crear la máquina');
+    }
+
+    const store = await this.locationsRepo.findOne({
+      where: {
+        id: storeId,
+        tenantId,
+        deletedAt: IsNull(),
+      },
+    });
+
+    if (!store) {
+      throw new NotFoundException(`Tienda con ID ${storeId} no encontrada para este tenant`);
+    }
+
+    return store;
+  }
+
+  private async validateAssignedUserIfPresent(
+    tenantId?: string,
+    assignedUserId?: string,
+  ): Promise<void> {
+    if (!assignedUserId) {
+      return;
+    }
+
+    const user = await this.usersRepo.findOne({
+      where: {
+        id: assignedUserId,
+        tenantId,
+        deletedAt: IsNull(),
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException(
+        `Usuario asignado con ID ${assignedUserId} no encontrado para este tenant`,
+      );
     }
   }
 

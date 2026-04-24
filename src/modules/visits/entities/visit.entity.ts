@@ -86,5 +86,5 @@ export class Visit {
 
   // Soft delete
   @DeleteDateColumn({ name: 'deleted_at' })
-  deletedAt: Date;
+  deletedAt: Date | null;
 }

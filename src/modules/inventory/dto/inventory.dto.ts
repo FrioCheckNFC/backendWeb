@@ -8,13 +8,7 @@ import {
   Min,
   IsEnum,
 } from 'class-validator';
-
-export enum InventoryStatus {
-  DISPONIBLE = 'disponible',
-  EN_USO = 'en_uso',
-  AGOTADO = 'agotado',
-  EN_PEDIDO = 'en_pedido',
-}
+import { InventoryStatus } from '../entities/inventory.entity';
 
 export class CreateInventoryDto {
   @ApiProperty({ example: 'Bebida Gaseosa 2L' })
@@ -58,6 +52,15 @@ export class CreateInventoryDto {
   @IsString()
   @MaxLength(100)
   location?: string;
+
+  @ApiProperty({
+    enum: InventoryStatus,
+    example: InventoryStatus.DISPONIBLE,
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(InventoryStatus)
+  status?: InventoryStatus;
 }
 
 export class UpdateInventoryDto {
@@ -102,6 +105,15 @@ export class UpdateInventoryDto {
   @IsString()
   @MaxLength(100)
   location?: string;
+
+  @ApiProperty({
+    enum: InventoryStatus,
+    example: InventoryStatus.DISPONIBLE,
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(InventoryStatus)
+  status?: InventoryStatus;
 }
 
 export class InventoryResponseDto {
@@ -118,7 +130,7 @@ export class InventoryResponseDto {
   partNumber: string;
 
   @ApiProperty({ example: 'Bebida refrescante de cola' })
-  description: string;
+  description: string | null;
 
   @ApiProperty({ example: 50 })
   quantity: number;
@@ -133,11 +145,25 @@ export class InventoryResponseDto {
   status: InventoryStatus;
 
   @ApiProperty({ example: 'Almacén Central' })
-  location: string;
+  location: string | null;
+
+  @ApiProperty({
+    example: 'SuperFrio Refrigeración',
+    required: false,
+    nullable: true,
+  })
+  tenantName: string | null;
 
   @ApiProperty({ example: '2026-04-08T12:00:00Z' })
   createdAt: Date;
 
   @ApiProperty({ example: '2026-04-08T12:00:00Z' })
   updatedAt: Date;
+
+  @ApiProperty({
+    example: null,
+    required: false,
+    nullable: true,
+  })
+  deletedAt: Date | null;
 }

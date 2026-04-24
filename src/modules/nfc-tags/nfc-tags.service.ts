@@ -152,6 +152,38 @@ export class NfcTagsService {
   ): Promise<NfcTag> {
     const nfcTag = await this.findOne(id, tenantId);
 
+    // Validar tenantId si se proporciona
+    if (data.tenantId) {
+      const tenant = await this.tenantsRepo.findOne({
+        where: { id: data.tenantId, deletedAt: IsNull() },
+      });
+      if (!tenant) {
+        throw new NotFoundException('Tenant no encontrado');
+      }
+    }
+
+    // Validar machineId si se proporciona
+    if (data.machineId) {
+      const targetTenantId = data.tenantId || tenantId;
+      const machine = await this.machineRepo.findOne({
+        where: { id: data.machineId, tenantId: targetTenantId, deletedAt: IsNull() },
+      });
+      if (!machine) {
+        throw new NotFoundException('Máquina no encontrada o no pertenece al tenant');
+      }
+    }
+
+    // Validar unicidad de uid si se proporciona
+    if (data.uid) {
+      const targetTenantId = data.tenantId || tenantId;
+      const existingTag = await this.nfcTagsRepo.findOne({
+        where: { uid: data.uid, tenantId: targetTenantId, deletedAt: IsNull() },
+      });
+      if (existingTag && existingTag.id !== id) {
+        throw new ConflictException('Ya existe un tag NFC con este UID en el tenant');
+      }
+    }
+
     Object.assign(nfcTag, data);
     return this.nfcTagsRepo.save(nfcTag);
   }

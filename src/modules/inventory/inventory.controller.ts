@@ -68,7 +68,7 @@ export class InventoryController {
   @ApiQuery({
     name: 'status',
     required: false,
-    enum: ['IN_STOCK', 'LOW_STOCK', 'OUT_OF_STOCK', 'DISCONTINUED'],
+    enum: InventoryStatus,
     description: 'Filtrar por estado de stock',
   })
   @ApiQuery({

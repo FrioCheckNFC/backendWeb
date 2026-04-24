@@ -65,16 +65,6 @@ export class CreateMachineDto {
   status: MachineStatus;
 
   @ApiProperty({
-    description: 'UUID del usuario asignado a la máquina',
-    example: '660e8400-e29b-41d4-a716-446655440000',
-    required: false,
-    nullable: true,
-  })
-  @IsOptional()
-  @IsUUID('4', { message: 'El assignedUserId debe ser un UUID válido' })
-  assignedUserId?: string;
-
-  @ApiProperty({
     description: 'Nombre de la ubicación de la máquina',
     example: 'Centro Comercial Plaza Mayor - Piso 1',
     maxLength: 255,
@@ -146,12 +136,9 @@ export class CreateMachineDto {
   @ApiProperty({
     description: 'UUID de la tienda donde se ubica la máquina',
     example: 'a7541a77-9af6-4d45-a9c2-b7415b572584',
-    required: false,
-    nullable: true,
   })
-  @IsOptional()
   @IsUUID('4', { message: 'El storeId debe ser un UUID válido' })
-  storeId?: string;
+  storeId: string;
 
   @ApiProperty({
     description: 'Indica si la máquina está activa',

@@ -13,10 +13,10 @@ import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth, ApiBody } 
 import { SectorsService } from './sectors.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
-import { CreateSectorDto, UpdateSectorDto, SectorResponseDto, UpdateSectorResponseDto } from './dto';
+import { CreateSectorDto, UpdateSectorDto, SectorResponseDto } from './dto';
 import { User } from '../users/entities/user.entity';
 
-@ApiTags('Sectors (Locales Físicos)')
+@ApiTags('Sectors (Regiones y Comunas)')
 @ApiBearerAuth()
 @Controller('sectors')
 @UseGuards(JwtAuthGuard)
@@ -25,13 +25,13 @@ export class SectorsController {
 
   /**
    * POST /sectors
-   * Crear un nuevo local
+   * Crear un nuevo sector (región/comuna)
    */
   @Post()
-  @ApiOperation({ summary: 'Crear nuevo local físico' })
+  @ApiOperation({ summary: 'Crear nuevo sector (región y comuna)' })
   @ApiResponse({
     status: 201,
-    description: 'Local creado exitosamente',
+    description: 'Sector creado exitosamente',
     type: SectorResponseDto,
   })
   @ApiResponse({
@@ -53,15 +53,27 @@ export class SectorsController {
 
   /**
    * GET /sectors
-   * Obtener todos los locales
+   * Obtener todos los sectores
    */
   @Get()
-  @ApiOperation({ summary: 'Obtener todos los locales' })
+  @ApiOperation({ summary: 'Obtener todos los sectores (filtrados por región y comuna)' })
   @ApiQuery({
     name: 'isActive',
     required: false,
     type: Boolean,
     description: 'Filtrar por estado activo',
+  })
+  @ApiQuery({
+    name: 'comuna',
+    required: false,
+    type: String,
+    description: 'Filtrar por comuna',
+  })
+  @ApiQuery({
+    name: 'city',
+    required: false,
+    type: String,
+    description: 'Filtrar por ciudad/región',
   })
   @ApiQuery({
     name: 'skip',
@@ -77,7 +89,7 @@ export class SectorsController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Lista de locales',
+    description: 'Lista de sectores',
     schema: {
       properties: {
         sectors: {
@@ -91,43 +103,29 @@ export class SectorsController {
   async findAll(
     @GetUser() user: User,
     @Query('isActive') isActive?: boolean,
+    @Query('comuna') comuna?: string,
+    @Query('city') city?: string,
     @Query('skip') skip?: number,
     @Query('take') take?: number,
   ) {
     return this.sectorsService.findAll(user.tenantId, {
       isActive,
+      comuna,
+      city,
       skip,
       take,
     });
   }
 
   /**
-   * GET /sectors/:id/details
-   * Obtener un local con todas sus máquinas y NFC tags
-   */
-  @Get(':id/details')
-  @ApiOperation({ summary: 'Obtener local con máquinas y NFC tags' })
-  @ApiResponse({
-    status: 200,
-    description: 'Local encontrado con detalles',
-    type: SectorResponseDto,
-  })
-  async findOneWithMachines(
-    @Param('id') id: string,
-    @GetUser() user: User,
-  ): Promise<SectorResponseDto> {
-    return this.sectorsService.findOneWithMachines(id, user.tenantId);
-  }
-
-  /**
    * GET /sectors/:id
-   * Obtener un local específico
+   * Obtener un sector específico
    */
   @Get(':id')
-  @ApiOperation({ summary: 'Obtener local por ID' })
+  @ApiOperation({ summary: 'Obtener sector por ID' })
   @ApiResponse({
     status: 200,
-    description: 'Local encontrado',
+    description: 'Sector encontrado',
     type: SectorResponseDto,
   })
   async findOne(
@@ -139,90 +137,57 @@ export class SectorsController {
 
   /**
    * PATCH /sectors/:id
-   * Actualizar un local (obtiene tenantId automáticamente)
+   * Actualizar un sector
    */
   @Patch(':id')
-  @ApiOperation({ summary: 'Actualizar local (obtiene tenantId automáticamente)' })
+  @ApiOperation({ summary: 'Actualizar sector (dirección, coordenadas, región y comuna)' })
   @ApiBody({
     type: UpdateSectorDto,
     required: true,
     examples: {
       ejemplo1: {
-        summary: 'Actualización parcial - Solo nombre y descripción',
+        summary: 'Cambio de dirección y coordenadas',
         value: {
-          name: 'Bodegón El Sol - Actualizado',
-          description: 'Sucursal principal actualizada con más máquinas',
+          address: 'Nueva dirección 123',
+          latitude: -33.45,
+          longitude: -70.65,
         },
       },
       ejemplo2: {
-        summary: 'Actualización completa con todo',
+        summary: 'Cambio de comuna',
         value: {
-          name: 'Bodegón El Sol',
-          description: 'Sucursal principal con 12 máquinas',
-          isActive: true,
-          address: 'Av. Libertador 45, Este',
-          latitude: -33.86880000,
-          longitude: -56.16360000,
-          contactName: 'Juan Pérez',
-          phone: '+56998765432',
-          email: 'juan@example.com',
-          contactUserId: '51339c6d-2876-440d-addb-b4f2229c1928',
-          color: '#FF5733',
-          icon: 'fas-store',
-          order: 1,
+          comuna: 'Las Condes',
         },
       },
       ejemplo3: {
-        summary: 'Actualización de ubicación GPS',
+        summary: 'Cambio de ciudad/región',
         value: {
-          address: 'Av. Libertador 45, Este',
-          latitude: -33.86880000,
-          longitude: -56.16360000,
+          city: 'Valparaíso',
         },
       },
       ejemplo4: {
-        summary: 'Actualización de contacto',
+        summary: 'Cambio de estado',
         value: {
-          contactName: 'María García',
-          phone: '+56987654321',
-          contactUserId: '51339c6d-2876-440d-addb-b4f2229c1928',
+          isActive: false,
         },
       },
       ejemplo5: {
-        summary: 'Cambio de estado y apariencia',
+        summary: 'Cambios múltiples',
         value: {
+          address: 'Nueva dirección 456',
+          latitude: -33.40,
+          longitude: -70.63,
+          comuna: 'Recoleta',
+          city: 'Región Metropolitana',
           isActive: true,
-          color: '#FF5733',
-          icon: 'fas-store-alt',
-          order: 2,
         },
       },
     },
   })
   @ApiResponse({
     status: 200,
-    description: 'Local actualizado exitosamente',
-    type: UpdateSectorResponseDto,
-    example: {
-      id: 'a7541a77-9af6-4d45-a9c2-b7415b572584',
-      tenantId: 'ff89158e-a521-4168-8a9f-cecb78d6f408',
-      name: 'Bodegón El Sol',
-      description: 'Sucursal principal con 12 máquinas',
-      isActive: true,
-      address: 'Av. Libertador 45, Este',
-      latitude: -33.86880000,
-      longitude: -56.16360000,
-      contactName: 'Juan Pérez',
-      phone: '+56998765432',
-      email: 'juan@example.com',
-      contactUserId: '51339c6d-2876-440d-addb-b4f2229c1928',
-      color: '#FF5733',
-      icon: 'fas-store',
-      order: 1,
-      createdAt: '2026-04-07T18:51:40.580514Z',
-      updatedAt: '2026-04-07T18:51:40.580514Z',
-      deletedAt: null,
-    },
+    description: 'Sector actualizado exitosamente',
+    type: SectorResponseDto,
   })
   @ApiResponse({
     status: 400,
@@ -234,7 +199,7 @@ export class SectorsController {
   })
   @ApiResponse({
     status: 404,
-    description: 'Local no encontrado',
+    description: 'Sector no encontrado',
   })
   async update(
     @Param('id') id: string,
@@ -246,13 +211,13 @@ export class SectorsController {
 
   /**
    * DELETE /sectors/:id
-   * Eliminar un local (soft delete)
+   * Eliminar un sector (soft delete)
    */
   @Delete(':id')
-  @ApiOperation({ summary: 'Eliminar local' })
+  @ApiOperation({ summary: 'Eliminar sector' })
   @ApiResponse({
     status: 200,
-    description: 'Local eliminado',
+    description: 'Sector eliminado',
   })
   async delete(
     @Param('id') id: string,
