@@ -1,3 +1,4 @@
+// filepath: src/modules/kpis/entities/kpi.entity.ts
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -18,27 +19,47 @@ export enum KpiType {
   OTHER = 'OTHER',
 }
 
+export enum KpiCalculationType {
+  MANUAL = 'MANUAL',
+  AUTOMATIC = 'AUTOMATIC',
+  FORMULA = 'FORMULA',
+}
+
+export enum KpiFrequency {
+  DAILY = 'DAILY',
+  WEEKLY = 'WEEKLY',
+  MONTHLY = 'MONTHLY',
+  YEARLY = 'YEARLY',
+}
+
+export enum KpiCategory {
+  VENTAS = 'VENTAS',
+  MAQUINAS = 'MAQUINAS',
+  TICKETS = 'TICKETS',
+  VISITAS = 'VISITAS',
+  INVENTARIO = 'INVENTARIO',
+  GENERAL = 'GENERAL',
+}
+
 @Entity('kpis')
 @Index(['tenantId', 'userId'])
 @Index(['tenantId', 'sectorId'])
 @Index(['tenantId', 'type'])
+@Index(['tenantId', 'category'])
+@Index(['tenantId', 'isGlobal'])
 export class Kpi {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  // FK al tenant
   @Column({ name: 'tenant_id', type: 'uuid' })
   tenantId: string;
 
-  // FK al usuario (opcional, puede ser KPI general)
   @Column({ name: 'user_id', type: 'uuid', nullable: true })
   userId: string;
 
-  // FK al sector (opcional)
   @Column({ name: 'sector_id', type: 'uuid', nullable: true })
   sectorId: string;
 
-  // Tipo de KPI
   @Column({
     type: 'enum',
     enum: KpiType,
@@ -46,34 +67,61 @@ export class Kpi {
   })
   type: KpiType;
 
-  // Nombre del KPI
   @Column({ type: 'varchar', length: 255 })
   name: string;
 
-  // Valor objetivo
+  @Column({ type: 'text', nullable: true })
+  description: string;
+
+  @Column({
+    type: 'enum',
+    enum: KpiCategory,
+    default: KpiCategory.GENERAL,
+  })
+  category: KpiCategory;
+
   @Column({ name: 'target_value', type: 'decimal', precision: 12, scale: 2 })
   targetValue: number;
 
-  // Valor actual
   @Column({ name: 'current_value', type: 'decimal', precision: 12, scale: 2 })
   currentValue: number;
 
-  // Fecha de inicio del período
   @Column({ name: 'start_date', type: 'timestamp' })
   startDate: Date;
 
-  // Fecha de fin del período
   @Column({ name: 'end_date', type: 'timestamp' })
   endDate: Date;
 
-  // Timestamps automáticos
+  @Column({
+    name: 'calculation_type',
+    type: 'enum',
+    enum: KpiCalculationType,
+    default: KpiCalculationType.MANUAL,
+  })
+  calculationType: KpiCalculationType;
+
+  @Column({ type: 'text', nullable: true })
+  formula: string;
+
+  @Column({
+    type: 'enum',
+    enum: KpiFrequency,
+    default: KpiFrequency.MONTHLY,
+  })
+  frequency: KpiFrequency;
+
+  @Column({ name: 'is_global', type: 'boolean', default: false })
+  isGlobal: boolean;
+
+  @Column({ name: 'data_config', type: 'jsonb', nullable: true })
+  dataConfig: Record<string, any>;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  // Soft delete
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt: Date;
 }

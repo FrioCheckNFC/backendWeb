@@ -9,4 +9,14 @@ export class AppController {
   getHello(): string {
     return this.appService.getHello();
   }
+
+  @Get('test')
+  getTest(): object {
+    return {
+      status: 'OK',
+      message: 'Servidor funcionando',
+      timestamp: new Date(),
+      kpisModule: 'Implementado'
+    };
+  }
 }
